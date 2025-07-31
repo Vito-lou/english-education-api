@@ -47,7 +47,7 @@
 -   **状态管理**: Zustand + React Query
 -   **UI 库**: shadcn/ui + Tailwind CSS
 -   **HTTP 客户端**: Axios
--   **图标**: Lucide React + React Icons
+-   **图标**: Lucide React
 
 ## 快速开始
 
