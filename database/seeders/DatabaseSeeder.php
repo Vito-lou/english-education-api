@@ -13,11 +13,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // 创建测试用户
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // 创建管理员用户
+        User::factory()->create([
+            'name' => '系统管理员',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
+
+        // 创建组织架构数据
+        $this->call(OrganizationSeeder::class);
     }
 }
