@@ -38,6 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // 管理后台API (english-education-frontend) - 需要认证
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
+        // 角色权限管理
+        Route::apiResource('roles', \App\Http\Controllers\Api\Admin\RoleController::class);
+        Route::get('permissions', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'index']);
+        Route::get('permissions/data', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'dataPermissions']);
+        Route::get('permissions/all', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'all']);
 
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);

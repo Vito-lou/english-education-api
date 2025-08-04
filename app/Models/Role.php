@@ -4,29 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'institution_id',
         'name',
         'code',
         'description',
-        'type',
-        'permissions',
-        'data_scope',
+        'is_system',
         'sort_order',
         'status',
     ];
 
     protected $casts = [
-        'permissions' => 'array',
-        'data_scope' => 'array',
+        'is_system' => 'boolean',
         'sort_order' => 'integer',
     ];
 
@@ -44,8 +40,24 @@ class Role extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_roles')
-            ->withPivot(['additional_permissions', 'data_restrictions', 'assigned_at', 'assigned_by'])
+            ->withPivot(['granted_by', 'granted_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * 角色的功能权限
+     */
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'role_permissions');
+    }
+
+    /**
+     * 角色的数据权限
+     */
+    public function dataPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(DataPermission::class, 'role_data_permissions');
     }
 
     /**
@@ -53,11 +65,7 @@ class Role extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
-            'system' => '系统预设',
-            'custom' => '自定义',
-            default => '未知'
-        };
+        return $this->is_system ? '系统角色' : '机构角色';
     }
 
     /**
@@ -73,40 +81,19 @@ class Role extends Model
     }
 
     /**
-     * 检查是否有指定权限
+     * 检查是否有指定功能权限
      */
-    public function hasPermission(string $permission): bool
+    public function hasPermission(string $permissionCode): bool
     {
-        if (!$this->permissions) {
-            return false;
-        }
-
-        // 检查是否有超级权限
-        if (in_array('*', $this->permissions)) {
-            return true;
-        }
-
-        // 检查具体权限
-        return in_array($permission, $this->permissions);
+        return $this->permissions()->where('code', $permissionCode)->exists();
     }
 
     /**
-     * 检查是否有权限组
+     * 检查是否有指定数据权限
      */
-    public function hasPermissionGroup(string $group): bool
+    public function hasDataPermission(string $dataPermissionCode): bool
     {
-        if (!$this->permissions) {
-            return false;
-        }
-
-        // 检查是否有超级权限
-        if (in_array('*', $this->permissions)) {
-            return true;
-        }
-
-        // 检查权限组（如 users.*）
-        $groupPattern = $group . '.*';
-        return in_array($groupPattern, $this->permissions);
+        return $this->dataPermissions()->where('code', $dataPermissionCode)->exists();
     }
 
     /**
@@ -114,7 +101,7 @@ class Role extends Model
      */
     public function isSystem(): bool
     {
-        return $this->type === 'system';
+        return $this->is_system;
     }
 
     /**
