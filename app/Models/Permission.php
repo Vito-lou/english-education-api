@@ -17,6 +17,7 @@ class Permission extends Model
         'code',
         'type',
         'parent_id',
+        'menu_id',
         'resource',
         'action',
         'description',
@@ -41,7 +42,15 @@ class Permission extends Model
      */
     public function children(): HasMany
     {
-        return $this->hasMany(Permission::class, 'parent_id');
+        return $this->hasMany(Permission::class, 'parent_id')->orderBy('sort_order');
+    }
+
+    /**
+     * 关联的菜单
+     */
+    public function menu(): BelongsTo
+    {
+        return $this->belongsTo(SystemMenu::class, 'menu_id');
     }
 
     /**

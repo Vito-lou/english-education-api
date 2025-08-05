@@ -97,7 +97,7 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'user_roles')
-            ->withPivot(['additional_permissions', 'data_restrictions', 'assigned_at', 'assigned_by'])
+            ->withPivot(['granted_by', 'granted_at'])
             ->withTimestamps();
     }
 
@@ -134,12 +134,6 @@ class User extends Authenticatable
     {
         foreach ($this->roles as $role) {
             if ($role->hasPermission($permission)) {
-                return true;
-            }
-
-            // 检查额外权限
-            $additionalPermissions = $role->pivot->additional_permissions ?? [];
-            if (in_array($permission, $additionalPermissions)) {
                 return true;
             }
         }

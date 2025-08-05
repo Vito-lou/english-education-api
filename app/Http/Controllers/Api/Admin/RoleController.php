@@ -17,7 +17,7 @@ class RoleController extends Controller
     {
         $institutionId = $request->get('institution_id');
 
-        $query = Role::with(['institution', 'permissions', 'dataPermissions']);
+        $query = Role::with(['institution', 'permissions', 'dataPermissions', 'menus']);
 
         if ($institutionId) {
             // 获取指定机构的角色 + 系统角色
@@ -51,6 +51,7 @@ class RoleController extends Controller
             'institution_id' => 'required|exists:institutions,id',
             'permission_ids' => 'array',
             'data_permission_ids' => 'array',
+            'menu_ids' => 'array',
         ]);
 
         $role = Role::create([
@@ -72,10 +73,15 @@ class RoleController extends Controller
             $role->dataPermissions()->sync($request->data_permission_ids);
         }
 
+        // 分配菜单权限（新模型）
+        if ($request->menu_ids) {
+            $role->menus()->sync($request->menu_ids);
+        }
+
         return response()->json([
             'code' => 200,
             'message' => '角色创建成功',
-            'data' => $role->load(['permissions', 'dataPermissions'])
+            'data' => $role->load(['permissions', 'dataPermissions', 'menus'])
         ]);
     }
 
@@ -84,7 +90,7 @@ class RoleController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $role = Role::with(['institution', 'permissions', 'dataPermissions'])->findOrFail($id);
+        $role = Role::with(['institution', 'permissions', 'dataPermissions', 'menus'])->findOrFail($id);
 
         return response()->json([
             'code' => 200,
@@ -113,6 +119,7 @@ class RoleController extends Controller
             'description' => 'nullable|string',
             'permission_ids' => 'array',
             'data_permission_ids' => 'array',
+            'menu_ids' => 'array',
         ]);
 
         $role->update([
@@ -128,6 +135,11 @@ class RoleController extends Controller
         // 更新数据权限
         if ($request->has('data_permission_ids')) {
             $role->dataPermissions()->sync($request->data_permission_ids);
+        }
+
+        // 更新菜单权限（新模型）
+        if ($request->has('menu_ids')) {
+            $role->menus()->sync($request->menu_ids);
         }
 
         return response()->json([

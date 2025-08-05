@@ -33,6 +33,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    // 用户相关接口
+    Route::get('/user/permissions', [\App\Http\Controllers\Api\UserController::class, 'permissions']);
+    Route::get('/user/profile', [\App\Http\Controllers\Api\UserController::class, 'profile']);
 });
 
 // 管理后台API (english-education-frontend) - 需要认证
@@ -43,6 +47,11 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
         Route::get('permissions', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'index']);
         Route::get('permissions/data', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'dataPermissions']);
         Route::get('permissions/all', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'all']);
+        Route::get('permissions/menu', [\App\Http\Controllers\Api\Admin\PermissionController::class, 'menuPermissions']);
+
+        // 系统菜单管理
+        Route::apiResource('system-menus', \App\Http\Controllers\Api\Admin\SystemMenuController::class);
+        Route::get('system-menus-list', [\App\Http\Controllers\Api\Admin\SystemMenuController::class, 'list']);
 
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
@@ -68,12 +77,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
 
 
-        // 角色管理 (TODO: 创建RoleController)
-        // Route::apiResource('roles', \App\Http\Controllers\Api\Admin\RoleController::class);
-
-        // 用户管理 (TODO: 创建UserController)
-        // Route::apiResource('users', \App\Http\Controllers\Api\Admin\UserController::class);
-        // Route::post('users/{user}/assign-roles', [\App\Http\Controllers\Api\Admin\UserController::class, 'assignRoles']);
+        // 用户管理
+        Route::apiResource('users', \App\Http\Controllers\Api\Admin\UserController::class);
+        Route::put('users/{user}/roles', [\App\Http\Controllers\Api\Admin\UserController::class, 'assignRoles']);
     });
 
     // H5端API (english-education-h5) - TODO: 创建对应控制器

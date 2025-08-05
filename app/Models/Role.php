@@ -61,6 +61,14 @@ class Role extends Model
     }
 
     /**
+     * 角色的菜单权限（新的简化模型）
+     */
+    public function menus(): BelongsToMany
+    {
+        return $this->belongsToMany(SystemMenu::class, 'role_menus', 'role_id', 'menu_id');
+    }
+
+    /**
      * 获取角色类型标签
      */
     public function getTypeLabelAttribute(): string
