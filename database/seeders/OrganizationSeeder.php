@@ -67,33 +67,7 @@ class OrganizationSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // 创建教室A
-        Department::create([
-            'institution_id' => $institution->id,
-            'parent_id' => $teachingDept->id,
-            'name' => '教室A',
-            'code' => 'ROOM_A',
-            'type' => 'classroom',
-            'description' => '多媒体教室，适合小班教学',
-            'capacity' => 12,
-            'facilities' => ['投影仪', '白板', '音响', '空调'],
-            'sort_order' => 1,
-            'status' => 'active',
-        ]);
 
-        // 创建教室B
-        Department::create([
-            'institution_id' => $institution->id,
-            'parent_id' => $teachingDept->id,
-            'name' => '教室B',
-            'code' => 'ROOM_B',
-            'type' => 'classroom',
-            'description' => '标准教室，适合中班教学',
-            'capacity' => 16,
-            'facilities' => ['投影仪', '白板', '音响'],
-            'sort_order' => 2,
-            'status' => 'active',
-        ]);
 
         // 创建销售部
         Department::create([

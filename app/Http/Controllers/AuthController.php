@@ -40,6 +40,16 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+
+        // 检查用户状态
+        if ($user->status !== 'active') {
+            Auth::logout(); // 立即登出
+            return response()->json([
+                'success' => false,
+                'message' => '账户已被禁用，请联系管理员'
+            ], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

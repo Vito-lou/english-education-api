@@ -29,7 +29,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // 受保护的路由
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'check.user.status'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -40,7 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // 管理后台API (english-education-frontend) - 需要认证
-Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group(function () {
 
         // 角色权限管理
         Route::apiResource('roles', \App\Http\Controllers\Api\Admin\RoleController::class);

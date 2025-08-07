@@ -111,7 +111,7 @@ class OrganizationController extends Controller
     public function createNode(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', Rule::in(['institution', 'campus', 'department', 'classroom'])],
+            'type' => ['required', Rule::in(['institution', 'campus', 'department'])],
             'parent_id' => 'nullable|integer',
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:50',
@@ -119,8 +119,6 @@ class OrganizationController extends Controller
             'manager_name' => 'nullable|string|max:50',
             'manager_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'capacity' => 'nullable|integer|min:1',
-            'facilities' => 'nullable|array',
             'sort_order' => 'nullable|integer',
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
 

@@ -28,7 +28,7 @@ return new class extends Migration
             $table->decimal('hourly_rate', 8, 2)->nullable()->comment('课时费');
             $table->enum('employment_type', ['full_time', 'part_time', 'contract'])->nullable()->comment('雇佣类型');
             $table->date('hire_date')->nullable()->comment('入职日期');
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->comment('状态');
+            $table->enum('status', ['active', 'inactive'])->default('active')->comment('状态');
             $table->timestamp('last_login_at')->nullable()->comment('最后登录时间');
             $table->softDeletes();
 

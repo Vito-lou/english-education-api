@@ -121,7 +121,7 @@ class UserController extends Controller
             'email' => ['nullable', 'email', 'max:100', Rule::unique('users')->ignore($user->id)],
             'institution_id' => 'required|exists:institutions,id',
             'department_id' => 'nullable|exists:departments,id',
-            'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
 
         $user->update([

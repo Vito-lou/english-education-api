@@ -22,15 +22,11 @@ class Department extends Model
         'manager_name',
         'manager_phone',
         'address',
-        'capacity',
-        'facilities',
         'sort_order',
         'status',
     ];
 
     protected $casts = [
-        'facilities' => 'array',
-        'capacity' => 'integer',
         'sort_order' => 'integer',
     ];
 
@@ -82,7 +78,6 @@ class Department extends Model
         return match($this->type) {
             'campus' => '校区',
             'department' => '部门',
-            'classroom' => '教室',
             default => '未知'
         };
     }
@@ -106,12 +101,12 @@ class Department extends Model
     {
         $path = [$this->name];
         $parent = $this->parent;
-        
+
         while ($parent) {
             array_unshift($path, $parent->name);
             $parent = $parent->parent;
         }
-        
+
         return implode(' > ', $path);
     }
 
@@ -123,11 +118,5 @@ class Department extends Model
         return $this->type === 'campus';
     }
 
-    /**
-     * 检查是否为教室
-     */
-    public function isClassroom(): bool
-    {
-        return $this->type === 'classroom';
-    }
+
 }

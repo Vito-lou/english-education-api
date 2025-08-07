@@ -108,8 +108,7 @@ class User extends Authenticatable
     {
         return match($this->status) {
             'active' => '正常',
-            'inactive' => '停用',
-            'suspended' => '暂停',
+            'inactive' => '禁用',
             default => '未知'
         };
     }

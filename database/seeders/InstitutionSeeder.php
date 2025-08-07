@@ -82,21 +82,7 @@ class InstitutionSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // 创建教室
-        for ($i = 1; $i <= 5; $i++) {
-            Department::create([
-                'institution_id' => $institution->id,
-                'parent_id' => $teachingDept->id,
-                'name' => "教室{$i}",
-                'code' => "ROOM_{$i}",
-                'type' => 'classroom',
-                'description' => "第{$i}教室",
-                'capacity' => 12,
-                'facilities' => ['投影仪', '白板', '音响', '空调'],
-                'sort_order' => $i,
-                'status' => 'active',
-            ]);
-        }
+
 
         // 创建角色
         $roles = [
@@ -115,7 +101,7 @@ class InstitutionSeeder extends Seeder
                 'description' => '校长，负责整体管理',
                 'type' => 'system',
                 'permissions' => [
-                    'institutions.*', 'departments.*', 'users.*', 
+                    'institutions.*', 'departments.*', 'users.*',
                     'students.*', 'teachers.*', 'finance.*'
                 ],
                 'data_scope' => ['institution'],
@@ -127,7 +113,7 @@ class InstitutionSeeder extends Seeder
                 'description' => '教务主任，负责教学管理',
                 'type' => 'system',
                 'permissions' => [
-                    'students.*', 'classes.*', 'teachers.view', 
+                    'students.*', 'classes.*', 'teachers.view',
                     'schedules.*', 'attendance.*'
                 ],
                 'data_scope' => ['department'],
