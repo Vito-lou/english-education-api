@@ -53,6 +53,19 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::apiResource('system-menus', \App\Http\Controllers\Api\Admin\SystemMenuController::class);
         Route::get('system-menus-list', [\App\Http\Controllers\Api\Admin\SystemMenuController::class, 'list']);
 
+        // 课程管理
+        Route::get('subjects', [\App\Http\Controllers\Api\Admin\CourseController::class, 'getSubjects']);
+        Route::apiResource('courses', \App\Http\Controllers\Api\Admin\CourseController::class);
+
+        // 课程级别管理
+        Route::apiResource('course-levels', \App\Http\Controllers\Api\Admin\CourseLevelController::class);
+
+        // 课程单元管理
+        Route::apiResource('course-units', \App\Http\Controllers\Api\Admin\CourseUnitController::class);
+
+        // 课时管理
+        Route::apiResource('lessons', \App\Http\Controllers\Api\Admin\LessonController::class);
+
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
         Route::get('institutions/{institution}/statistics', [InstitutionController::class, 'statistics']);
@@ -94,26 +107,26 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
     //     Route::get('courses/levels/{level}', [\App\Http\Controllers\Api\H5\CourseController::class, 'levelDetail']);
     // });
 
-    // 原典法系统路由
-    Route::prefix('offline')->group(function () {
-        // 学生管理
-        Route::apiResource('students', \App\Http\Controllers\StudentController::class);
+    // 原典法系统路由 - TODO: 实现这些控制器
+    // Route::prefix('offline')->group(function () {
+    //     // 学生管理
+    //     Route::apiResource('students', \App\Http\Controllers\StudentController::class);
+    //
+    //     // 课程管理
+    //     Route::apiResource('courses', \App\Http\Controllers\CourseController::class);
+    //
+    //     // 课时记录
+    //     Route::apiResource('lessons', \App\Http\Controllers\LessonController::class);
+    // });
 
-        // 课程管理
-        Route::apiResource('courses', \App\Http\Controllers\CourseController::class);
-
-        // 课时记录
-        Route::apiResource('lessons', \App\Http\Controllers\LessonController::class);
-    });
-
-    // 线上课程系统路由
-    Route::prefix('online')->group(function () {
-        // 线上课程
-        Route::apiResource('courses', \App\Http\Controllers\OnlineCourseController::class);
-
-        // 订单管理
-        Route::apiResource('orders', \App\Http\Controllers\OrderController::class);
-
-        // 分销商管理
-        Route::apiResource('distributors', \App\Http\Controllers\DistributorController::class);
-    });
+    // 线上课程系统路由 - TODO: 实现这些控制器
+    // Route::prefix('online')->group(function () {
+    //     // 线上课程
+    //     Route::apiResource('courses', \App\Http\Controllers\OnlineCourseController::class);
+    //
+    //     // 订单管理
+    //     Route::apiResource('orders', \App\Http\Controllers\OrderController::class);
+    //
+    //     // 分销商管理
+    //     Route::apiResource('distributors', \App\Http\Controllers\DistributorController::class);
+    // });

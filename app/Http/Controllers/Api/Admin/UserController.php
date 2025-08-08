@@ -119,19 +119,35 @@ class UserController extends Controller
             'name' => 'required|string|max:100',
             'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
             'email' => ['nullable', 'email', 'max:100', Rule::unique('users')->ignore($user->id)],
+            'password' => 'nullable|string|min:6',
             'institution_id' => 'required|exists:institutions,id',
             'department_id' => 'nullable|exists:departments,id',
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'role_ids' => 'array',
+            'role_ids.*' => 'exists:roles,id',
         ]);
 
-        $user->update([
+        // 更新用户基本信息
+        $updateData = [
             'name' => $request->name,
             'phone' => $request->phone,
             'email' => $request->email,
             'institution_id' => $request->institution_id,
             'department_id' => $request->department_id,
             'status' => $request->status,
-        ]);
+        ];
+
+        // 如果提供了密码，则更新密码
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $user->update($updateData);
+
+        // 同步角色关系
+        if ($request->has('role_ids')) {
+            $user->roles()->sync($request->role_ids);
+        }
 
         return response()->json([
             'code' => 200,
