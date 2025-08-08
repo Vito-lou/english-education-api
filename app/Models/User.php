@@ -155,4 +155,30 @@ class User extends Authenticatable
     {
         return $this->can_teach && $this->isActive();
     }
+
+    /**
+     * 关联的学员（支持多个孩子）
+     */
+    public function students(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'user_students')
+                    ->withPivot('relationship')
+                    ->withTimestamps();
+    }
+
+    /**
+     * 获取主要管理的学员（如果是家长用户）
+     */
+    public function primaryStudent(): ?Student
+    {
+        return $this->students()->first();
+    }
+
+    /**
+     * 检查是否是家长用户
+     */
+    public function isParent(): bool
+    {
+        return $this->students()->exists();
+    }
 }

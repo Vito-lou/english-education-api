@@ -66,6 +66,10 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         // 课时管理
         Route::apiResource('lessons', \App\Http\Controllers\Api\Admin\LessonController::class);
 
+        // 学员管理
+        Route::get('students/statistics', [\App\Http\Controllers\Api\Admin\StudentController::class, 'statistics']);
+        Route::apiResource('students', \App\Http\Controllers\Api\Admin\StudentController::class);
+
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
         Route::get('institutions/{institution}/statistics', [InstitutionController::class, 'statistics']);
