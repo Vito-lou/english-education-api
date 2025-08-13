@@ -25,8 +25,8 @@ class SystemMenuSeeder extends Seeder
             ],
             [
                 'name' => '机构管理',
-                'code' => 'organization',
-                'path' => '/organization',
+                'code' => 'institution',
+                'path' => null,
                 'icon' => 'Building2',
                 'parent_id' => null,
                 'sort_order' => 2,
@@ -34,34 +34,14 @@ class SystemMenuSeeder extends Seeder
                 'description' => '机构和部门管理',
             ],
             [
-                'name' => '账户管理',
-                'code' => 'account',
-                'path' => '/account',
-                'icon' => 'Users',
+                'name' => '教务中心',
+                'code' => 'academic_center',
+                'path' => null,
+                'icon' => 'GraduationCap',
                 'parent_id' => null,
                 'sort_order' => 3,
                 'status' => 'active',
-                'description' => '用户和角色管理',
-            ],
-            [
-                'name' => '学员管理',
-                'code' => 'student',
-                'path' => '/student',
-                'icon' => 'GraduationCap',
-                'parent_id' => null,
-                'sort_order' => 4,
-                'status' => 'active',
-                'description' => '学员信息管理',
-            ],
-            [
-                'name' => '课程管理',
-                'code' => 'course',
-                'path' => '/course',
-                'icon' => 'BookOpen',
-                'parent_id' => null,
-                'sort_order' => 5,
-                'status' => 'active',
-                'description' => '课程和班级管理',
+                'description' => '教学管理中心',
             ],
             [
                 'name' => '财务管理',
@@ -69,56 +49,132 @@ class SystemMenuSeeder extends Seeder
                 'path' => '/finance',
                 'icon' => 'DollarSign',
                 'parent_id' => null,
-                'sort_order' => 6,
+                'sort_order' => 4,
                 'status' => 'active',
                 'description' => '财务和收费管理',
             ],
             [
-                'name' => '系统设置',
-                'code' => 'system',
-                'path' => '/system',
+                'name' => '应用中心',
+                'code' => 'app_center',
+                'path' => null,
                 'icon' => 'Settings',
                 'parent_id' => null,
-                'sort_order' => 7,
+                'sort_order' => 5,
                 'status' => 'active',
-                'description' => '系统配置和设置',
+                'description' => '系统应用和工具',
             ],
         ];
 
         foreach ($menus as $menuData) {
             $menu = SystemMenu::firstOrCreate(['code' => $menuData['code']], $menuData);
-            
+
             // 为每个菜单创建对应的权限
             $this->createMenuPermissions($menu);
         }
 
-        // 创建二级菜单（账户管理的子菜单）
-        $accountMenu = SystemMenu::where('code', 'account')->first();
-        if ($accountMenu) {
-            $subMenus = [
+        // 创建二级菜单
+
+        // 机构管理下的子菜单
+        $institutionMenu = SystemMenu::where('code', 'institution')->first();
+        if ($institutionMenu) {
+            $institutionSubMenus = [
                 [
-                    'name' => '用户管理',
-                    'code' => 'user_management',
-                    'path' => '/account/users',
-                    'icon' => 'User',
-                    'parent_id' => $accountMenu->id,
+                    'name' => '组织架构',
+                    'code' => 'organization',
+                    'path' => '/institution/organization',
+                    'icon' => 'Building2',
+                    'parent_id' => $institutionMenu->id,
                     'sort_order' => 1,
                     'status' => 'active',
-                    'description' => '用户账户管理',
+                    'description' => '机构和部门管理',
                 ],
                 [
-                    'name' => '角色管理',
-                    'code' => 'role_management',
-                    'path' => '/account/roles',
-                    'icon' => 'Shield',
-                    'parent_id' => $accountMenu->id,
+                    'name' => '账户管理',
+                    'code' => 'account',
+                    'path' => '/institution/accounts',
+                    'icon' => 'Users',
+                    'parent_id' => $institutionMenu->id,
                     'sort_order' => 2,
                     'status' => 'active',
-                    'description' => '角色权限管理',
+                    'description' => '用户和角色管理',
                 ],
             ];
 
-            foreach ($subMenus as $subMenuData) {
+            foreach ($institutionSubMenus as $subMenuData) {
+                $subMenu = SystemMenu::firstOrCreate(['code' => $subMenuData['code']], $subMenuData);
+                $this->createMenuPermissions($subMenu);
+            }
+        }
+
+        // 教务中心下的子菜单
+        $academicMenu = SystemMenu::where('code', 'academic_center')->first();
+        if ($academicMenu) {
+            $academicSubMenus = [
+                [
+                    'name' => '学员管理',
+                    'code' => 'student_management',
+                    'path' => '/academic/students',
+                    'icon' => 'User',
+                    'parent_id' => $academicMenu->id,
+                    'sort_order' => 1,
+                    'status' => 'active',
+                    'description' => '学员信息管理',
+                ],
+                [
+                    'name' => '课程管理',
+                    'code' => 'course_management',
+                    'path' => '/academic/courses',
+                    'icon' => 'BookOpen',
+                    'parent_id' => $academicMenu->id,
+                    'sort_order' => 2,
+                    'status' => 'active',
+                    'description' => '课程和班级管理',
+                ],
+                [
+                    'name' => '班级管理',
+                    'code' => 'class_management',
+                    'path' => '/academic/classes',
+                    'icon' => 'Users',
+                    'parent_id' => $academicMenu->id,
+                    'sort_order' => 3,
+                    'status' => 'active',
+                    'description' => '班级信息管理',
+                ],
+                [
+                    'name' => '课表管理',
+                    'code' => 'schedule_management',
+                    'path' => '/academic/schedules',
+                    'icon' => 'Calendar',
+                    'parent_id' => $academicMenu->id,
+                    'sort_order' => 4,
+                    'status' => 'active',
+                    'description' => '课程时间安排',
+                ],
+            ];
+
+            foreach ($academicSubMenus as $subMenuData) {
+                $subMenu = SystemMenu::firstOrCreate(['code' => $subMenuData['code']], $subMenuData);
+                $this->createMenuPermissions($subMenu);
+            }
+        }
+
+        // 应用中心下的子菜单
+        $appCenterMenu = SystemMenu::where('code', 'app_center')->first();
+        if ($appCenterMenu) {
+            $appSubMenus = [
+                [
+                    'name' => '菜单管理',
+                    'code' => 'menu_management',
+                    'path' => '/apps/menu',
+                    'icon' => 'Settings',
+                    'parent_id' => $appCenterMenu->id,
+                    'sort_order' => 1,
+                    'status' => 'active',
+                    'description' => '系统菜单管理',
+                ],
+            ];
+
+            foreach ($appSubMenus as $subMenuData) {
                 $subMenu = SystemMenu::firstOrCreate(['code' => $subMenuData['code']], $subMenuData);
                 $this->createMenuPermissions($subMenu);
             }
