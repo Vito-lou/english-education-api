@@ -117,6 +117,22 @@ class BasicDataSeeder extends Seeder
             }
         }
 
+        // 创建vito老师
+        $vitoUser = User::firstOrCreate(
+            ['email' => 'vito@example.com'],
+            [
+                'name' => 'vito',
+                'password' => bcrypt('password'),
+                'institution_id' => $institution->id,
+                'status' => 'active',
+            ]
+        );
+
+        $teacherRole = Role::where('code', 'teacher')->first();
+        if ($teacherRole) {
+            $vitoUser->roles()->syncWithoutDetaching([$teacherRole->id]);
+        }
+
         echo "基础数据创建完成！\n";
     }
 }

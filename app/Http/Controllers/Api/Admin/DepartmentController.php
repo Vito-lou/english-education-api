@@ -270,4 +270,28 @@ class DepartmentController extends Controller
             'data' => $departments
         ]);
     }
+
+    /**
+     * 获取部门选项（用于下拉框，不分页）
+     */
+    public function options(Request $request): JsonResponse
+    {
+        $query = Department::select(['id', 'name', 'type']);
+
+        // 类型筛选
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // 状态筛选
+        $query->where('status', 'active');
+
+        $departments = $query->orderBy('sort_order')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => '获取部门选项成功',
+            'data' => $departments
+        ]);
+    }
 }

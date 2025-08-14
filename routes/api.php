@@ -55,6 +55,8 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
 
         // 课程管理
         Route::get('subjects', [\App\Http\Controllers\Api\Admin\CourseController::class, 'getSubjects']);
+        Route::get('courses-options', [\App\Http\Controllers\Api\Admin\CourseController::class, 'options']);
+        Route::get('courses/{course}/levels', [\App\Http\Controllers\Api\Admin\CourseController::class, 'levels']);
         Route::apiResource('courses', \App\Http\Controllers\Api\Admin\CourseController::class);
 
         // 课程级别管理
@@ -76,6 +78,7 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
 
         // 部门管理 - 自定义路由必须在apiResource之前
         Route::get('departments/tree', [DepartmentController::class, 'tree']);
+        Route::get('departments-options', [DepartmentController::class, 'options']);
 
         Route::apiResource('departments', DepartmentController::class);
 
@@ -95,8 +98,14 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
 
 
         // 用户管理
+        Route::get('users-options', [\App\Http\Controllers\Api\Admin\UserController::class, 'options']);
         Route::apiResource('users', \App\Http\Controllers\Api\Admin\UserController::class);
         Route::put('users/{user}/roles', [\App\Http\Controllers\Api\Admin\UserController::class, 'assignRoles']);
+
+        // 班级管理
+        Route::apiResource('classes', \App\Http\Controllers\Api\Admin\ClassController::class);
+        Route::post('classes/{class}/graduate', [\App\Http\Controllers\Api\Admin\ClassController::class, 'graduate']);
+        Route::get('classes-statistics', [\App\Http\Controllers\Api\Admin\ClassController::class, 'statistics']);
     });
 
     // H5端API (english-education-h5) - TODO: 创建对应控制器

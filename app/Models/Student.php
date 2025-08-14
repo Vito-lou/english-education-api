@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Student extends Model
 {
@@ -146,5 +147,31 @@ class Student extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * 关联班级（通过中间表）
+     */
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(ClassModel::class, 'student_classes')
+            ->withPivot(['enrollment_date', 'status'])
+            ->withTimestamps();
+    }
+
+    /**
+     * 关联活跃班级
+     */
+    public function activeClasses(): BelongsToMany
+    {
+        return $this->classes()->wherePivot('status', 'active');
+    }
+
+    /**
+     * 关联学员班级记录
+     */
+    public function studentClasses(): HasMany
+    {
+        return $this->hasMany(StudentClass::class);
     }
 }

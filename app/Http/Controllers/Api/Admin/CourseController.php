@@ -149,4 +149,50 @@ class CourseController extends Controller
             'message' => '课程删除成功'
         ]);
     }
+
+    /**
+     * 获取课程选项（用于下拉框，不分页）
+     */
+    public function options(Request $request): JsonResponse
+    {
+        $query = Course::select(['id', 'name', 'has_levels']);
+
+        // 状态筛选
+        $query->where('status', 'active');
+
+        $courses = $query->orderBy('sort_order')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => '获取课程选项成功',
+            'data' => $courses
+        ]);
+    }
+
+    /**
+     * 获取课程的级别列表
+     */
+    public function levels($courseId): JsonResponse
+    {
+        $course = Course::findOrFail($courseId);
+
+        if (!$course->has_levels) {
+            return response()->json([
+                'success' => true,
+                'message' => '该课程没有级别',
+                'data' => []
+            ]);
+        }
+
+        $levels = $course->levels()
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->get(['id', 'name', 'code', 'description']);
+
+        return response()->json([
+            'success' => true,
+            'message' => '获取课程级别成功',
+            'data' => $levels
+        ]);
+    }
 }

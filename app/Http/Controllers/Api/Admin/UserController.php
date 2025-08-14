@@ -46,6 +46,13 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
+        // 角色过滤
+        if ($request->has('role') && $request->role) {
+            $query->whereHas('roles', function($q) use ($request) {
+                $q->where('code', $request->role);
+            });
+        }
+
         $users = $query->orderBy('created_at', 'desc')
                       ->paginate($request->get('per_page', 20));
 
@@ -197,6 +204,32 @@ class UserController extends Controller
         return response()->json([
             'code' => 200,
             'message' => '用户删除成功'
+        ]);
+    }
+
+    /**
+     * 获取用户选项（用于下拉框，不分页）
+     */
+    public function options(Request $request): JsonResponse
+    {
+        $query = User::select(['id', 'name', 'email']);
+
+        // 角色筛选
+        if ($request->filled('role')) {
+            $query->whereHas('roles', function($q) use ($request) {
+                $q->where('code', $request->role);
+            });
+        }
+
+        // 状态筛选
+        $query->where('status', 'active');
+
+        $users = $query->orderBy('name')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => '获取用户选项成功',
+            'data' => $users
         ]);
     }
 }
