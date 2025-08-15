@@ -36,6 +36,14 @@ class StudentController extends Controller
             $query->where('intention_level', $request->intention_level);
         }
 
+        // 排除已在指定班级中的学员
+        if ($request->filled('exclude_class_id')) {
+            $classId = $request->exclude_class_id;
+            $query->whereDoesntHave('studentClasses', function ($q) use ($classId) {
+                $q->where('class_id', $classId)->where('status', 'active');
+            });
+        }
+
         // 搜索
         if ($request->filled('search')) {
             $search = $request->search;

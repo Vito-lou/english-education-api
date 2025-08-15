@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('student_id')->comment('学员ID');
             $table->unsignedBigInteger('class_id')->comment('班级ID');
             $table->date('enrollment_date')->comment('入班日期');
-            $table->enum('status', ['active', 'graduated', 'dropped'])->default('active')->comment('学员状态');
+            $table->enum('status', ['active', 'graduated', 'dropped', 'transferred'])->default('active')->comment('学员状态');
             $table->timestamps();
 
             // 外键约束

@@ -72,6 +72,10 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::get('students/statistics', [\App\Http\Controllers\Api\Admin\StudentController::class, 'statistics']);
         Route::apiResource('students', \App\Http\Controllers\Api\Admin\StudentController::class);
 
+        // 学员班级管理
+        Route::post('student-classes/{studentClass}/transfer', [\App\Http\Controllers\Api\Admin\StudentClassController::class, 'transfer']);
+        Route::apiResource('student-classes', \App\Http\Controllers\Api\Admin\StudentClassController::class);
+
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
         Route::get('institutions/{institution}/statistics', [InstitutionController::class, 'statistics']);

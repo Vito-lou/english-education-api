@@ -50,6 +50,7 @@ class StudentClass extends Model
             'active' => '在读',
             'graduated' => '已结业',
             'dropped' => '退班',
+            'transferred' => '已转班',
             default => '未知状态',
         };
     }

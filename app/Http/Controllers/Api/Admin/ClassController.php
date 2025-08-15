@@ -63,7 +63,7 @@ class ClassController extends Controller
     public function show($id): JsonResponse
     {
         $user = Auth::user();
-        
+
         $class = ClassModel::with([
             'campus:id,name',
             'course:id,name',
@@ -80,7 +80,8 @@ class ClassController extends Controller
         $class->status_name = $class->status_name;
 
         return response()->json([
-            'success' => true,
+            'code' => 200,
+            'message' => 'success',
             'data' => $class,
         ]);
     }
@@ -91,7 +92,7 @@ class ClassController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = Auth::user();
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'campus_id' => 'required|exists:departments,id',
@@ -107,7 +108,7 @@ class ClassController extends Controller
         $campus = Department::where('id', $validated['campus_id'])
             ->where('institution_id', $user->institution_id)
             ->first();
-        
+
         if (!$campus) {
             return response()->json([
                 'success' => false,
@@ -118,7 +119,7 @@ class ClassController extends Controller
         $course = Course::where('id', $validated['course_id'])
             ->where('institution_id', $user->institution_id)
             ->first();
-            
+
         if (!$course) {
             return response()->json([
                 'success' => false,
@@ -131,7 +132,7 @@ class ClassController extends Controller
             $level = CourseLevel::where('id', $validated['level_id'])
                 ->where('course_id', $validated['course_id'])
                 ->first();
-                
+
             if (!$level) {
                 return response()->json([
                     'success' => false,
@@ -144,7 +145,7 @@ class ClassController extends Controller
         $teacher = User::where('id', $validated['teacher_id'])
             ->where('institution_id', $user->institution_id)
             ->first();
-            
+
         if (!$teacher) {
             return response()->json([
                 'success' => false,
@@ -184,7 +185,7 @@ class ClassController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => '班级创建失败：' . $e->getMessage(),
@@ -198,7 +199,7 @@ class ClassController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $user = Auth::user();
-        
+
         $class = ClassModel::forInstitution($user->institution_id)->findOrFail($id);
 
         $validated = $request->validate([
@@ -216,7 +217,7 @@ class ClassController extends Controller
         $campus = Department::where('id', $validated['campus_id'])
             ->where('institution_id', $user->institution_id)
             ->first();
-        
+
         if (!$campus) {
             return response()->json([
                 'success' => false,
@@ -251,7 +252,7 @@ class ClassController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => '班级更新失败：' . $e->getMessage(),
@@ -265,7 +266,7 @@ class ClassController extends Controller
     public function destroy($id): JsonResponse
     {
         $user = Auth::user();
-        
+
         $class = ClassModel::forInstitution($user->institution_id)->findOrFail($id);
 
         // 检查是否有学员
@@ -298,7 +299,7 @@ class ClassController extends Controller
     public function graduate($id): JsonResponse
     {
         $user = Auth::user();
-        
+
         $class = ClassModel::forInstitution($user->institution_id)->findOrFail($id);
 
         if ($class->status === 'graduated') {
@@ -323,7 +324,7 @@ class ClassController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'success' => false,
                 'message' => '班级结业失败：' . $e->getMessage(),
