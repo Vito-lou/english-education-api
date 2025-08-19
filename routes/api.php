@@ -110,6 +110,19 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::apiResource('classes', \App\Http\Controllers\Api\Admin\ClassController::class);
         Route::post('classes/{class}/graduate', [\App\Http\Controllers\Api\Admin\ClassController::class, 'graduate']);
         Route::get('classes-statistics', [\App\Http\Controllers\Api\Admin\ClassController::class, 'statistics']);
+
+        // 排课管理
+        Route::apiResource('time-slots', \App\Http\Controllers\Api\Admin\TimeSlotController::class);
+        Route::apiResource('class-schedules', \App\Http\Controllers\Api\Admin\ClassScheduleController::class);
+
+        // 排课相关功能
+        Route::prefix('schedules')->group(function () {
+            Route::post('batch-create', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'batchCreate']);
+            Route::get('calendar/{classId}', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getClassCalendar']);
+            Route::get('teacher/{teacherId}', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getTeacherSchedule']);
+            Route::get('today', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getTodaySchedules']);
+            Route::post('check-conflicts', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'checkConflicts']);
+        });
     });
 
     // H5端API (english-education-h5) - TODO: 创建对应控制器

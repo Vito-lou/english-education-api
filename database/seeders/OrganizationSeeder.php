@@ -111,29 +111,35 @@ class OrganizationSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // 更新测试用户，分配到机构
-        $user = User::where('email', 'admin@example.com')->first();
-        if ($user) {
-            $user->update([
-                'institution_id' => $institution->id,
-                'department_id' => $teachingDept->id,
-            ]);
-            $this->command->info('测试用户已分配到机构');
-        } else {
-            // 如果没有测试用户，创建一个
-            $user = User::create([
-                'name' => '系统管理员',
-                'email' => 'admin@example.com',
-                'password' => bcrypt('password'),
-                'institution_id' => $institution->id,
-                'department_id' => $teachingDept->id,
-                'role' => 'admin',
-                'can_teach' => false,
-                'status' => 'active',
-                'email_verified_at' => now(),
-            ]);
-            $this->command->info('测试用户已创建并分配到机构');
-        }
+        // 创建测试用户
+        User::factory()->create([
+            'name' => '测试用户',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password'),
+            'institution_id' => $institution->id,
+            'department_id' => $teachingDept->id,
+            'status' => 'active',
+        ]);
+
+        // 创建管理员用户
+        User::factory()->create([
+            'name' => '系统管理员',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('admin123'),
+            'institution_id' => $institution->id,
+            'department_id' => $teachingDept->id,
+            'status' => 'active',
+        ]);
+
+        // 创建教师用户
+        User::factory()->create([
+            'name' => 'vito',
+            'email' => 'vito@example.com',
+            'password' => bcrypt('password'),
+            'institution_id' => $institution->id,
+            'department_id' => $teachingDept->id,
+            'status' => 'active',
+        ]);
 
         $this->command->info('组织架构数据创建完成！');
     }

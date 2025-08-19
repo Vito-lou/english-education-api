@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\StudentClassResource;
 use App\Models\StudentClass;
 use App\Models\ClassModel;
 use Illuminate\Http\JsonResponse;
@@ -50,7 +51,7 @@ class StudentClassController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $studentClasses,
+            'data' => StudentClassResource::collection($studentClasses),
         ]);
     }
 

@@ -34,16 +34,11 @@ class BasicDataSeeder extends Seeder
             Permission::firstOrCreate(['code' => $permission['code']], $permission);
         }
 
-        // 创建测试机构
-        $institution = Institution::firstOrCreate(
-            ['code' => 'test_institution'],
-            [
-                'name' => '测试机构',
-                'code' => 'test_institution',
-                'description' => '用于测试的机构',
-                'status' => 'active',
-            ]
-        );
+        // 获取已创建的机构
+        $institution = Institution::where('code', 'EETC001')->first();
+        if (!$institution) {
+            throw new \Exception('机构不存在，请先运行 OrganizationSeeder');
+        }
 
         // 创建基础角色
         $roles = [
@@ -90,14 +85,9 @@ class BasicDataSeeder extends Seeder
             }
         }
 
-        // 更新现有用户，分配机构和角色
+        // 为已创建的用户分配角色
         $adminUser = User::where('email', 'admin@example.com')->first();
         if ($adminUser) {
-            $adminUser->update([
-                'institution_id' => $institution->id,
-                'phone' => '13800138000',
-            ]);
-
             $superAdminRole = Role::where('code', 'super_admin')->first();
             if ($superAdminRole) {
                 $adminUser->roles()->sync([$superAdminRole->id]);
@@ -106,31 +96,18 @@ class BasicDataSeeder extends Seeder
 
         $testUser = User::where('email', 'test@example.com')->first();
         if ($testUser) {
-            $testUser->update([
-                'institution_id' => $institution->id,
-                'phone' => '13800138001',
-            ]);
-
             $teacherRole = Role::where('code', 'teacher')->first();
             if ($teacherRole) {
                 $testUser->roles()->sync([$teacherRole->id]);
             }
         }
 
-        // 创建vito老师
-        $vitoUser = User::firstOrCreate(
-            ['email' => 'vito@example.com'],
-            [
-                'name' => 'vito',
-                'password' => bcrypt('password'),
-                'institution_id' => $institution->id,
-                'status' => 'active',
-            ]
-        );
-
-        $teacherRole = Role::where('code', 'teacher')->first();
-        if ($teacherRole) {
-            $vitoUser->roles()->syncWithoutDetaching([$teacherRole->id]);
+        $vitoUser = User::where('email', 'vito@example.com')->first();
+        if ($vitoUser) {
+            $teacherRole = Role::where('code', 'teacher')->first();
+            if ($teacherRole) {
+                $vitoUser->roles()->syncWithoutDetaching([$teacherRole->id]);
+            }
         }
 
         echo "基础数据创建完成！\n";

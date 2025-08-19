@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -65,7 +66,15 @@ class StudentController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $students,
+            'data' => [
+                'data' => StudentResource::collection($students->items()),
+                'current_page' => $students->currentPage(),
+                'last_page' => $students->lastPage(),
+                'per_page' => $students->perPage(),
+                'total' => $students->total(),
+                'from' => $students->firstItem(),
+                'to' => $students->lastItem(),
+            ],
         ]);
     }
 
@@ -126,7 +135,7 @@ class StudentController extends Controller
             return response()->json([
                 'code' => 200,
                 'message' => '学员创建成功',
-                'data' => $student,
+                'data' => new StudentResource($student),
             ]);
 
         } catch (\Exception $e) {
@@ -157,7 +166,7 @@ class StudentController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $student,
+            'data' => new StudentResource($student),
         ]);
     }
 
@@ -197,7 +206,7 @@ class StudentController extends Controller
             return response()->json([
                 'code' => 200,
                 'message' => '学员信息更新成功',
-                'data' => $student,
+                'data' => new StudentResource($student),
             ]);
 
         } catch (\Exception $e) {

@@ -113,9 +113,35 @@ GET    /api/online/distributors        # 获取分销商列表
 POST   /api/online/distributors        # 创建分销商
 ```
 
-## 开发规范
+## 📖 开发规范
 
-### API 响应格式
+### 🔌 API 响应格式规范
+
+项目中存在两种 API 响应格式，需要注意区分：
+
+#### 1. 标准响应格式（推荐）
+
+```json
+// 成功响应
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    // 具体数据
+  }
+}
+
+// 错误响应
+{
+  "code": 400,
+  "message": "错误信息",
+  "errors": {
+    "field": ["具体错误信息"]
+  }
+}
+```
+
+#### 2. 兼容格式（部分旧接口）
 
 ```json
 // 成功响应
@@ -137,20 +163,213 @@ POST   /api/online/distributors        # 创建分销商
 }
 ```
 
-### 分页响应格式
+**⚠️ 注意**：新开发的 API 应统一使用标准响应格式（code 字段）
+
+### 📄 分页响应格式
 
 ```json
 {
-  "success": true,
+  "code": 200,
+  "message": "获取成功",
   "data": {
-    "data": [...],
-    "current_page": 1,
-    "last_page": 10,
-    "per_page": 15,
-    "total": 150
+    "data": [...],           // 当前页数据
+    "current_page": 1,       // 当前页码
+    "last_page": 10,         // 最后一页
+    "per_page": 15,          // 每页数量
+    "total": 150,            // 总记录数
+    "from": 1,               // 当前页起始记录号
+    "to": 15                 // 当前页结束记录号
   }
 }
 ```
+
+### 🔐 认证规范
+
+**Token 存储**：
+
+-   前端使用 `localStorage.getItem("auth_token")` 存储 token
+-   API 请求头：`Authorization: Bearer {token}`
+
+**权限控制**：
+
+-   所有 `/api/admin/*` 接口需要认证
+-   基于机构的数据隔离（institution_id）
+-   角色权限控制（admin, teacher, student）
+
+### 🏗️ Controller 开发规范
+
+#### 标准 CRUD 操作
+
+```php
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+
+class ExampleController extends Controller
+{
+    /**
+     * 获取列表（支持分页和筛选）
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $query = Model::where('institution_id', $user->institution_id);
+
+        // 筛选条件
+        if ($request->filled('keyword')) {
+            $query->where('name', 'like', "%{$request->keyword}%");
+        }
+
+        // 分页
+        $data = $query->paginate($request->get('per_page', 15));
+
+        return response()->json([
+            'code' => 200,
+            'message' => '获取成功',
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * 创建资源
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            // 其他验证规则
+        ]);
+
+        $model = Model::create([
+            ...$validated,
+            'institution_id' => Auth::user()->institution_id,
+            'created_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => '创建成功',
+            'data' => $model,
+        ]);
+    }
+
+    /**
+     * 更新资源
+     */
+    public function update(Request $request, Model $model): JsonResponse
+    {
+        // 权限检查
+        if ($model->institution_id !== Auth::user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权操作',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $model->update($validated);
+
+        return response()->json([
+            'code' => 200,
+            'message' => '更新成功',
+            'data' => $model,
+        ]);
+    }
+
+    /**
+     * 删除资源
+     */
+    public function destroy(Model $model): JsonResponse
+    {
+        // 权限检查
+        if ($model->institution_id !== Auth::user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权操作',
+            ], 403);
+        }
+
+        $model->delete();
+
+        return response()->json([
+            'code' => 200,
+            'message' => '删除成功',
+        ]);
+    }
+}
+```
+
+### 🗄️ Model 开发规范
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class ExampleModel extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'name',
+        'institution_id',
+        'created_by',
+        // 其他可填充字段
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // 关联关系
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // 作用域
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    // 访问器
+    public function getStatusNameAttribute()
+    {
+        return match($this->status) {
+            'active' => '启用',
+            'inactive' => '禁用',
+            default => '未知',
+        };
+    }
+}
+```
+
+### ⚠️ 常见错误避免
+
+1. **权限检查**：所有操作都要检查 `institution_id`
+2. **数据验证**：使用 Laravel 的表单验证
+3. **错误处理**：统一的错误响应格式
+4. **软删除**：重要数据使用软删除
+5. **关联加载**：避免 N+1 查询问题
 
 ## 开发计划
 
@@ -166,224 +385,15 @@ POST   /api/online/distributors        # 创建分销商
 -   ⏳ 核心功能开发待开始
 -   ⏳ 前端项目创建待开始
 
-## 联系方式
+## 📞 联系方式
 
 如有问题，请查看 [产品设计文档](docs/product-versions/README.md) 或提交 Issue。
 
-# 原典法教育系统 v2 版本
+## 🤝 贡献指南
 
-# 英语教育管理系统
-
-## 产品概述
-
-集成化英语教育管理系统，包含**原典法线下教学管理**和**标准化线上课程分发**两大板块，为独立英语教师提供完整的教学管理和商业化解决方案。
-
-### 核心价值主张
-
-**线下专注原典法精品教学，线上实现标准化课程规模收益，数据统一管理，商业模式互补**
-
-## 双系统架构设计
-
-### 系统定位区分
-
-#### 1. 原典法教育系统（线下板块）
-
--   **教学理念**: 严格遵循原典法四步骤
-    -   听力为先 - 大量可理解性输入
-    -   口语跟进 - 模仿与表达练习
-    -   阅读理解 - 文本理解与词汇积累
-    -   写作表达 - 语言输出与创作
--   **服务模式**: 面对面个性化教学
--   **目标用户**: 本地学生，追求高质量教学效果
--   **核心功能**: 教学管理、进度追踪、家校互动
-
-#### 2. 标准化课程系统（线上板块）
-
--   **教学理念**: 基于认知科学的标准化学习路径
--   **服务模式**: 自主学习 + 社群辅导
--   **目标用户**: 全国范围学习者，追求便利性和性价比
--   **核心功能**: 课程分发、学习追踪、分销管理
-
-### 技术架构：统一后端，双前端
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    统一后端系统                          │
-│                 Laravel 12 + MySQL                     │
-├─────────────────────────────────────────────────────────┤
-│                    统一数据库                           │
-│          用户、课程、订单、学习记录（类型区分）            │
-├─────────────────────────────────────────────────────────┤
-│                    双系统前端                           │
-│  ┌─────────────────────┐  ┌─────────────────────┐        │
-│  │   原典法教育系统     │  │   线上课程系统       │        │
-│  │   (offline.domain)  │  │   (online.domain)   │        │
-│  │                     │  │                     │        │
-│  │ • 教师管理端         │  │ • 课程学习端         │        │
-│  │ • 学员学习端         │  │ • 分销商管理端       │        │
-│  │ • 家长监督端         │  │ • 营销推广页面       │        │
-│  └─────────────────────┘  └─────────────────────┘        │
-└─────────────────────────────────────────────────────────┘
-```
-
-## 用户体系设计
-
-### 统一用户表，系统权限分离
-
-```sql
-users 表设计：
-- role: admin/teacher/offline_student/online_student/parent/distributor
-- system_access: JSON字段 {"offline": true, "online": false}
-- registration_source: offline/online/referral
-```
-
-### 用户角色与系统权限矩阵
-
-| 角色            | 原典法系统  | 线上课程系统  | 说明               |
-| --------------- | ----------- | ------------- | ------------------ |
-| teacher         | ✅ 全部权限 | ✅ 全部权限   | 你作为系统拥有者   |
-| offline_student | ✅ 学习功能 | 🔒 需单独购买 | 线下学员可升级线上 |
-| online_student  | ❌ 无权限   | ✅ 学习功能   | 纯线上用户         |
-| parent          | ✅ 监督功能 | ✅ 购买功能   | 可同时管理两边     |
-| distributor     | ❌ 无权限   | ✅ 分销功能   | 专注线上推广       |
-
-## 产品功能设计
-
-### 原典法教育系统功能
-
-#### 教师端功能
-
--   **学员档案管理**: 详细的学习档案和能力评估
--   **课程规划**: 基于原典法的个性化课程设计
--   **教学记录**: 每节课的详细教学记录和反思
--   **进度追踪**: 听说读写四维能力发展追踪
--   **家校沟通**: 学习报告和家长沟通记录
-
-#### 学员端功能
-
--   **课前预习**: 听力材料预先熟悉
--   **课后复习**: 跟读练习和理解巩固
--   **进度查看**: 个人学习轨迹和能力图谱
--   **作业提交**: 口语录音和写作作业
-
-#### 家长端功能
-
--   **学习监督**: 实时了解孩子学习内容和进度
--   **效果查看**: 阶段性能力提升报告
--   **沟通记录**: 与教师的沟通历史
--   **成就分享**: 孩子的学习成就展示
-
-### 线上课程系统功能
-
-#### 核心课程产品
-
-##### 1. 零基础 3000 词系列
-
--   **L1 词汇感知**: 动画视频多重复现
--   **L2 短语组合**: 词汇扩展和搭配学习
--   **L3 句型训练**: 问答练习和口语启发
--   **L4 故事串联**: 情节化记忆和理解
--   **L5 场景应用**: 实用对话和表达
-
-##### 2. 分级阅读课程
-
--   **故事阅读**: 按难度分级的故事内容
--   **科普阅读**: 知识性文章阅读理解
--   **阅读策略**: 阅读技巧和方法指导
-
-##### 3. 语法体系课程
-
--   **基础语法**: 核心语法规则讲解
--   **语法应用**: 结合词汇的语法练习
--   **语法进阶**: 复杂语法结构掌握
-
-#### 学习端功能
-
--   **课程学习**: 视频学习 + 互动练习
--   **进度管理**: 学习计划和进度追踪
--   **社群互动**: 学习小组和答疑
--   **成就系统**: 学习激励和成就展示
-
-#### 分销端功能
-
--   **推广工具**: 海报生成和分享链接
--   **销售管理**: 订单跟踪和佣金结算
--   **团队管理**: 下级分销商管理
--   **培训资料**: 产品培训和销售技巧
-
-## 数据设计原则
-
-### 1. 统一存储，类型区分
-
-```sql
-courses 表：
-- system_type: 'offline'/'online' 区分系统
-- teaching_method: 'yuandian'/'standard' 区分教学法
-
-learning_records 表：
-- system_type: 'offline'/'online'
-- lesson_type: 'face_to_face'/'video'/'practice'
-```
-
-### 2. 用户关系打通
-
--   同一用户可以在两个系统间切换
--   家长可以统一管理孩子在两个系统的学习
--   学习数据可以互相参考但不混合
-
-### 3. 商业数据分离
-
--   线下按课时收费，线上按课程包收费
--   分销数据只属于线上系统
--   财务报表按系统分别统计
-
-## 商业模式
-
-### 线下：原典法精品教学
-
--   **定位**: 高端个性化教学服务
--   **收费**: 按课时收费，价格较高
--   **优势**: 教学效果显著，口碑传播
--   **规模**: 受地域和时间限制
-
-### 线上：标准化课程分发
-
--   **定位**: 普惠性英语学习产品
--   **收费**: 课程包 + 分销体系
--   **优势**: 可规模化，边际成本低
--   **规模**: 全国市场，无地域限制
-
-### 两者协同效应
-
-1. **线下验证线上**: 原典法教学效果为线上课程提供权威背书
-2. **线上扩大影响**: 线上用户了解原典法理念，提升线下品牌
-3. **用户互相转化**: 线下学员购买线上补充，线上用户转线下深度学习
-4. **数据相互支撑**: 线下个性化数据指导线上产品优化
-
-## 发展规划
-
-### 第一阶段（3-6 个月）：原典法系统
-
--   完成线下教学管理功能
--   验证数据架构的扩展性
--   积累教学数据和用户反馈
-
-### 第二阶段（6-12 个月）：线上系统开发
-
--   开发线上课程学习平台
--   制作第一批标准化课程内容
--   建立分销合作机制
-
-### 第三阶段（1-2 年）：双系统协同
-
--   完善两个系统的数据打通
--   优化用户在两系统间的体验
--   建立全国性的业务网络
-
-## 核心优势
-
-1. **教学专业性** - 线下原典法的深度和线上标准化的广度
-2. **商业模式互补** - 高价值服务 + 规模化产品
-3. **品牌差异化** - 原典法权威性为线上产品背书
-4. **技术架构统一** - 一套系统支撑两种业务模式
-5. **用户价值最大化** - 不同需求用户都能找到合适的服务
+1. 遵循项目的 API 开发规范
+2. 所有 API 都要进行权限检查
+3. 使用统一的响应格式
+4. 为新功能添加适当的数据验证
+5. 重要数据使用软删除
+6. 避免 N+1 查询问题

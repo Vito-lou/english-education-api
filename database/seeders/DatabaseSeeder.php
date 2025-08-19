@@ -13,23 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 创建测试用户
-        User::factory()->create([
-            'name' => '测试用户',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'),
-            'status' => 'active',
-        ]);
-
-        // 创建管理员用户
-        User::factory()->create([
-            'name' => '系统管理员',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('admin123'),
-            'status' => 'active',
-        ]);
-
-        // 创建组织架构数据
+        // 先创建组织架构数据（包括机构和用户）
         $this->call(OrganizationSeeder::class);
 
         // 创建基础数据（角色、权限等）
@@ -40,5 +24,14 @@ class DatabaseSeeder extends Seeder
 
         // 分配菜单权限
         $this->call(MenuBasedPermissionSeeder::class);
+
+        // 创建原典法英语课程数据
+        $this->call(YuandianEnglishSeeder::class);
+
+        // 创建测试学员数据
+        $this->call(TestStudentSeeder::class);
+
+        // 创建时间段配置数据
+        $this->call(TimeSlotSeeder::class);
     }
 }
