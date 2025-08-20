@@ -79,20 +79,22 @@ class ClassSchedule extends Model
     }
 
     /**
-     * 考勤记录
+     * 考勤记录 - 暂未实现
+     * TODO: 将来实现考勤功能时启用
      */
-    public function attendanceRecords(): HasMany
-    {
-        return $this->hasMany(AttendanceRecord::class, 'schedule_id');
-    }
+    // public function attendanceRecords(): HasMany
+    // {
+    //     return $this->hasMany(AttendanceRecord::class, 'schedule_id');
+    // }
 
     /**
-     * 实际上课记录
+     * 实际上课记录 - 暂未实现
+     * TODO: 将来实现上课记录功能时启用
      */
-    public function actualLessonRecord(): HasOne
-    {
-        return $this->hasOne(ActualLessonRecord::class, 'schedule_id');
-    }
+    // public function actualLessonRecord(): HasOne
+    // {
+    //     return $this->hasOne(ActualLessonRecord::class, 'schedule_id');
+    // }
 
     /**
      * 获取状态中文名称

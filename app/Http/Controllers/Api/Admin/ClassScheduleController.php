@@ -250,13 +250,8 @@ class ClassScheduleController extends Controller
             ], 403);
         }
 
-        // 检查是否已有考勤记录
-        if ($classSchedule->attendanceRecords()->exists()) {
-            return response()->json([
-                'code' => 400,
-                'message' => '该课程已有考勤记录，无法删除',
-            ], 400);
-        }
+        // TODO: 将来实现考勤功能时，需要检查是否已有考勤记录
+        // 目前排课阶段不涉及考勤，可以直接删除
 
         $classSchedule->delete();
 
