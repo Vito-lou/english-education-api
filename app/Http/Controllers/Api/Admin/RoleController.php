@@ -106,11 +106,11 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // 系统角色不允许修改
-        if ($role->is_system) {
+        // 系统角色只允许超级管理员修改
+        if ($role->is_system && !$this->isSuperAdmin()) {
             return response()->json([
                 'code' => 400,
-                'message' => '系统角色不允许修改'
+                'message' => '系统角色只允许超级管理员修改'
             ], 400);
         }
 
@@ -156,11 +156,11 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        // 系统角色不允许删除
-        if ($role->is_system) {
+        // 系统角色只允许超级管理员删除
+        if ($role->is_system && !$this->isSuperAdmin()) {
             return response()->json([
                 'code' => 400,
-                'message' => '系统角色不允许删除'
+                'message' => '系统角色只允许超级管理员删除'
             ], 400);
         }
 
@@ -178,5 +178,19 @@ class RoleController extends Controller
             'code' => 200,
             'message' => '角色删除成功'
         ]);
+    }
+
+    /**
+     * 检查当前用户是否为超级管理员
+     */
+    private function isSuperAdmin(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        // 检查用户是否拥有超级管理员角色
+        return $user->roles()->where('code', 'super_admin')->exists();
     }
 }
