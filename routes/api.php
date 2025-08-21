@@ -119,6 +119,7 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::apiResource('time-slots', \App\Http\Controllers\Api\Admin\TimeSlotController::class);
         Route::apiResource('class-schedules', \App\Http\Controllers\Api\Admin\ClassScheduleController::class);
 
+
         // 排课相关功能
         Route::prefix('schedules')->group(function () {
             Route::post('batch-create', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'batchCreate']);

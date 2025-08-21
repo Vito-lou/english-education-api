@@ -12,6 +12,14 @@ class StudentEnrollment extends Model
 
     protected $table = 'student_enrollments';
 
+
+    protected $appends = [
+        'status_name',
+        'payment_status_name',
+        'discount_type_name',
+        'lesson_progress',
+    ];
+
     protected $fillable = [
         'student_id',
         'institution_id',
@@ -34,6 +42,10 @@ class StudentEnrollment extends Model
         'payment_status',
         'sales_person_id',
         'remarks',
+        'refund_amount',
+        'refund_reason',
+        'refunded_at',
+        'refund_processed_by',
     ];
 
     protected $casts = [
@@ -48,6 +60,8 @@ class StudentEnrollment extends Model
         'total_lessons' => 'integer',
         'used_lessons' => 'integer',
         'remaining_lessons' => 'integer',
+        'refund_amount' => 'decimal:2',
+        'refunded_at' => 'datetime',
     ];
 
     /**
@@ -97,6 +111,7 @@ class StudentEnrollment extends Model
     {
         return $this->belongsTo(User::class, 'sales_person_id');
     }
+
 
     /**
      * 获取状态显示名称

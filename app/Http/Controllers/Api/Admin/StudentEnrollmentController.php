@@ -301,32 +301,28 @@ class StudentEnrollmentController extends Controller
 
             $enrollment = StudentEnrollment::findOrFail($id);
 
-            // 检查退费金额是否超过已付金额
-            if ($request->refund_amount > $enrollment->paid_amount) {
-                return response()->json([
-                    'code' => 400,
-                    'message' => '退费金额不能超过已付金额',
-                ], 400);
+            // 业务逻辑校验
+            if ($request->refund_amount > $enrollment->actual_amount) {
+                return response()->json(['code' => 400, 'message' => '退费金额不能超过订单实际支付金额'], 400);
             }
-
-            // 检查是否已经退费
             if ($enrollment->payment_status === 'refunded') {
-                return response()->json([
-                    'code' => 400,
-                    'message' => '该订单已经退费',
-                ], 400);
+                return response()->json(['code' => 400, 'message' => '该订单已处理过退费，请勿重复操作'], 400);
             }
 
-            // 更新订单状态
+            // 更新报名记录
             $enrollment->update([
                 'payment_status' => 'refunded',
-                'status' => 'cancelled',
-                'remarks' => ($enrollment->remarks ? $enrollment->remarks . "\n" : '') .
-                           "退费：{$request->refund_amount}元，原因：{$request->refund_reason}",
+                'status' => 'cancelled', // 将订单状态标记为已取消
+                'refund_amount' => $request->refund_amount,
+                'refund_reason' => $request->refund_reason,
+                'refunded_at' => now(),
+                'refund_processed_by' => auth()->id(),
+                'remarks' => trim(($enrollment->remarks ?? '') . "\n" . "执行退费操作：退款 {$request->refund_amount}元，原因：{$request->refund_reason}"),
+                'remaining_lessons' => 0, // 退费后，此订单的剩余课时直接清零
             ]);
 
-            // TODO: 这里可以添加退费记录到单独的退费表
-            // RefundRecord::create([...]);
+            // 注意：学员的总剩余课时是通过动态计算所有有效报名订单的 remaining_lessons 之和得出的。
+            // 因此，此处无需也无法直接修改 students 表。将此订单的剩余课时清零即完成了课时“返还”的逻辑。
 
             DB::commit();
 
