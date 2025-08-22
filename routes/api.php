@@ -70,9 +70,11 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
 
         // 学员管理
         Route::get('students/statistics', [\App\Http\Controllers\Api\Admin\StudentController::class, 'statistics']);
+        Route::get('students/creatable-types', [\App\Http\Controllers\Api\Admin\StudentController::class, 'getCreatableTypes']);
         Route::apiResource('students', \App\Http\Controllers\Api\Admin\StudentController::class);
 
         // 学员报名管理
+        Route::get('enrollments/{enrollment}/refund-info', [\App\Http\Controllers\Api\Admin\StudentEnrollmentController::class, 'getRefundInfo']);
         Route::post('enrollments/{enrollment}/refund', [\App\Http\Controllers\Api\Admin\StudentEnrollmentController::class, 'refund']);
         Route::apiResource('enrollments', \App\Http\Controllers\Api\Admin\StudentEnrollmentController::class);
 
@@ -119,6 +121,11 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::apiResource('time-slots', \App\Http\Controllers\Api\Admin\TimeSlotController::class);
         Route::apiResource('class-schedules', \App\Http\Controllers\Api\Admin\ClassScheduleController::class);
 
+
+        // 点名考勤
+        Route::get('class-schedules/{schedule}/attendance', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getAttendance']);
+        Route::post('class-schedules/{schedule}/attendance', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'saveAttendance']);
+        Route::get('classes/{classId}/attendance-records', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getClassAttendanceRecords']);
 
         // 排课相关功能
         Route::prefix('schedules')->group(function () {

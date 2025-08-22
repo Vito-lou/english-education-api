@@ -91,7 +91,7 @@ class StudentController extends Controller
             'parent_name' => 'required|string|max:255',
             'parent_phone' => 'required|string|max:20',
             'parent_relationship' => 'required|in:father,mother,guardian,other',
-            'student_type' => 'required|in:potential,trial,enrolled,graduated,suspended',
+            'student_type' => 'required|in:' . Student::TYPE_POTENTIAL . ',' . Student::TYPE_TRIAL,
             'follow_up_status' => 'required|in:new,contacted,interested,not_interested,follow_up',
             'intention_level' => 'required|in:high,medium,low',
             'source' => 'nullable|string|max:255',
@@ -183,6 +183,14 @@ class StudentController extends Controller
             ], 403);
         }
 
+        // 构建验证规则
+        $allowedTypes = [Student::TYPE_POTENTIAL, Student::TYPE_TRIAL, Student::TYPE_REFUNDED, Student::TYPE_GRADUATED, Student::TYPE_SUSPENDED];
+
+        // 如果当前学员已经是正式学员，允许保持该状态
+        if ($student->student_type === Student::TYPE_ENROLLED) {
+            $allowedTypes[] = Student::TYPE_ENROLLED;
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -191,13 +199,21 @@ class StudentController extends Controller
             'parent_name' => 'required|string|max:255',
             'parent_phone' => 'required|string|max:20',
             'parent_relationship' => 'required|in:father,mother,guardian,other',
-            'student_type' => 'required|in:potential,trial,enrolled,graduated,suspended',
+            'student_type' => 'required|in:' . implode(',', $allowedTypes),
             'follow_up_status' => 'required|in:new,contacted,interested,not_interested,follow_up',
             'intention_level' => 'required|in:high,medium,low',
             'source' => 'nullable|string|max:255',
             'remarks' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
+
+        // 防止手动将非正式学员改为正式学员
+        if ($request->student_type === Student::TYPE_ENROLLED && $student->student_type !== Student::TYPE_ENROLLED) {
+            return response()->json([
+                'code' => 400,
+                'message' => '不能手动将学员状态改为正式学员，请通过报名流程完成',
+            ], 400);
+        }
 
         try {
             $student->update($validated);
@@ -281,6 +297,18 @@ class StudentController extends Controller
             'code' => 200,
             'message' => 'success',
             'data' => $stats,
+        ]);
+    }
+
+    /**
+     * 获取可创建的学员类型选项
+     */
+    public function getCreatableTypes(): JsonResponse
+    {
+        return response()->json([
+            'code' => 200,
+            'message' => 'success',
+            'data' => Student::getCreatableTypes(),
         ]);
     }
 }

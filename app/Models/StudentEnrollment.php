@@ -21,6 +21,7 @@ class StudentEnrollment extends Model
     ];
 
     protected $fillable = [
+        'order_number',
         'student_id',
         'institution_id',
         'campus_id',
@@ -192,5 +193,44 @@ class StudentEnrollment extends Model
         }
 
         return $this->save();
+    }
+
+    /**
+     * 生成订单号
+     */
+    public static function generateOrderNumber(): string
+    {
+        $date = date('Ymd');
+        $prefix = 'ORD' . $date;
+
+        // 使用微秒时间戳确保唯一性
+        $microtime = str_replace('.', '', microtime(true));
+        $suffix = substr($microtime, -6); // 取最后6位
+
+        $orderNumber = $prefix . $suffix;
+
+        // 如果还是重复（极小概率），添加随机数
+        $attempts = 0;
+        while (self::where('order_number', $orderNumber)->exists() && $attempts < 10) {
+            $attempts++;
+            $random = mt_rand(100, 999);
+            $orderNumber = $prefix . $suffix . $random;
+        }
+
+        return $orderNumber;
+    }
+
+    /**
+     * 模型事件：创建时自动生成订单号
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($enrollment) {
+            if (empty($enrollment->order_number)) {
+                $enrollment->order_number = self::generateOrderNumber();
+            }
+        });
     }
 }

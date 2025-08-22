@@ -33,10 +33,10 @@ class ClassSchedule extends Model
     /**
      * 状态常量
      */
-    const STATUS_SCHEDULED = 'scheduled';
-    const STATUS_COMPLETED = 'completed';
-    const STATUS_CANCELLED = 'cancelled';
-    const STATUS_RESCHEDULED = 'rescheduled';
+    const STATUS_SCHEDULED = 'scheduled';    // 已排课（未点名）
+    const STATUS_COMPLETED = 'completed';    // 已点名（已完成）
+    const STATUS_CANCELLED = 'cancelled';    // 已取消（不上课）
+    const STATUS_RESCHEDULED = 'rescheduled'; // 已调课（保留兼容性）
 
     /**
      * 所属班级
@@ -82,10 +82,10 @@ class ClassSchedule extends Model
      * 考勤记录 - 暂未实现
      * TODO: 将来实现考勤功能时启用
      */
-    // public function attendanceRecords(): HasMany
-    // {
-    //     return $this->hasMany(AttendanceRecord::class, 'schedule_id');
-    // }
+    public function attendanceRecords(): HasMany
+    {
+        return $this->hasMany(AttendanceRecord::class, 'schedule_id');
+    }
 
     /**
      * 实际上课记录 - 暂未实现
@@ -102,13 +102,39 @@ class ClassSchedule extends Model
     public function getStatusNameAttribute(): string
     {
         $statuses = [
-            self::STATUS_SCHEDULED => '已排课',
-            self::STATUS_COMPLETED => '已完成',
+            self::STATUS_SCHEDULED => '未点名',
+            self::STATUS_COMPLETED => '已点名',
             self::STATUS_CANCELLED => '已取消',
             self::STATUS_RESCHEDULED => '已调课',
         ];
 
         return $statuses[$this->status] ?? $this->status;
+    }
+
+    /**
+     * 检查是否已点名
+     */
+    public function isAttendanceTaken(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED;
+    }
+
+    /**
+     * 检查是否可以删除
+     */
+    public function canBeDeleted(): bool
+    {
+        return $this->status !== self::STATUS_COMPLETED;
+    }
+
+    /**
+     * 检查是否可以点名
+     */
+    public function canTakeAttendance(): bool
+    {
+        // 只有已排课状态且日期不是未来日期才能点名
+        return $this->status === self::STATUS_SCHEDULED &&
+               $this->schedule_date <= today();
     }
 
     /**

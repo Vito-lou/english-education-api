@@ -59,6 +59,15 @@ class TimeSlot extends Model
     }
 
     /**
+     * 获取以小时为单位的时长
+     */
+    public function getDurationAttribute(): float
+    {
+        return $this->duration_minutes / 60;
+    }
+
+
+    /**
      * 作用域：启用的时间段
      */
     public function scopeActive($query)

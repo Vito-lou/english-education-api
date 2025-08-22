@@ -13,6 +13,16 @@ class Student extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * 学员类型常量
+     */
+    const TYPE_POTENTIAL = 'potential';    // 潜在学员
+    const TYPE_TRIAL = 'trial';           // 试听学员
+    const TYPE_ENROLLED = 'enrolled';     // 正式学员（只能通过报名获得）
+    const TYPE_REFUNDED = 'refunded';     // 已退费学员
+    const TYPE_GRADUATED = 'graduated';   // 已毕业
+    const TYPE_SUSPENDED = 'suspended';   // 暂停学习
+
     protected $fillable = [
         'name',
         'phone',
@@ -85,14 +95,43 @@ class Student extends Model
     public function getStudentTypeNameAttribute(): string
     {
         $types = [
-            'potential' => '潜在学员',
-            'trial' => '试听学员',
-            'enrolled' => '正式学员',
-            'graduated' => '已毕业',
-            'suspended' => '暂停学习',
+            self::TYPE_POTENTIAL => '潜在学员',
+            self::TYPE_TRIAL => '试听学员',
+            self::TYPE_ENROLLED => '正式学员',
+            self::TYPE_REFUNDED => '已退费学员',
+            self::TYPE_GRADUATED => '已毕业',
+            self::TYPE_SUSPENDED => '暂停学习',
         ];
 
         return $types[$this->student_type] ?? $this->student_type;
+    }
+
+    /**
+     * 获取可创建的学员类型（不包括正式学员）
+     */
+    public static function getCreatableTypes(): array
+    {
+        return [
+            self::TYPE_POTENTIAL => '潜在学员',
+            self::TYPE_TRIAL => '试听学员',
+        ];
+    }
+
+    /**
+     * 检查是否为正式学员
+     */
+    public function isEnrolled(): bool
+    {
+        return $this->student_type === self::TYPE_ENROLLED;
+    }
+
+    /**
+     * 将学员状态改为正式学员（只能通过报名流程调用）
+     */
+    public function markAsEnrolled(): void
+    {
+        $this->student_type = self::TYPE_ENROLLED;
+        $this->save();
     }
 
     /**
@@ -173,5 +212,13 @@ class Student extends Model
     public function studentClasses(): HasMany
     {
         return $this->hasMany(StudentClass::class);
+    }
+
+    /**
+     * 关联学员报名记录
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class);
     }
 }

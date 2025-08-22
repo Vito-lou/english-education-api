@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentClassResource;
 use App\Models\StudentClass;
 use App\Models\ClassModel;
+use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,12 +78,34 @@ class StudentClassController extends Controller
             }
 
             // 检查学员是否属于同一机构
-            $student = \App\Models\Student::find($validated['student_id']);
+            $student = Student::find($validated['student_id']);
             if ($student->institution_id !== auth()->user()->institution_id) {
                 return response()->json([
                     'code' => 403,
                     'message' => '无权操作该学员',
                 ], 403);
+            }
+
+            // 检查学员是否为正式学员
+            if ($student->student_type !== Student::TYPE_ENROLLED) {
+                return response()->json([
+                    'code' => 400,
+                    'message' => '只有正式学员才能分配到班级，请先为学员完成报名',
+                ], 400);
+            }
+
+            // 检查学员是否有对应课程的有效报名记录
+            $hasValidEnrollment = $student->enrollments()
+                ->where('course_id', $class->course_id)
+                ->whereIn('status', ['active', 'completed'])
+                ->where('payment_status', '!=', 'refunded')
+                ->exists();
+
+            if (!$hasValidEnrollment) {
+                return response()->json([
+                    'code' => 400,
+                    'message' => '学员没有该课程的有效报名记录，无法分配到班级',
+                ], 400);
             }
 
             // 检查班级是否还有容量

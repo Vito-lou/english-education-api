@@ -144,8 +144,8 @@ class StudentEnrollmentController extends Controller
             ]);
 
             // 报名成功后，更新学员状态为正式学员
-            if (in_array($student->student_type, ['potential', 'trial'])) {
-                $student->update(['student_type' => 'enrolled']);
+            if (in_array($student->student_type, [Student::TYPE_POTENTIAL, Student::TYPE_TRIAL])) {
+                $student->markAsEnrolled();
             }
 
             DB::commit();
@@ -272,6 +272,54 @@ class StudentEnrollmentController extends Controller
     }
 
     /**
+     * 获取退费信息（计算建议退费金额）
+     */
+    public function getRefundInfo(string $id): JsonResponse
+    {
+        try {
+            $enrollment = StudentEnrollment::with(['student', 'course'])->findOrFail($id);
+
+            // 计算已消课数量（通过点名记录统计）
+            $attendedLessons = \App\Models\AttendanceRecord::whereHas('schedule', function ($query) use ($enrollment) {
+                $query->whereHas('class.students', function ($q) use ($enrollment) {
+                    $q->where('student_classes.student_id', $enrollment->student_id)
+                      ->where('student_classes.status', 'active');
+                });
+            })
+            ->where('student_id', $enrollment->student_id)
+            ->where('attendance_status', 'present') // 只统计出席的课程
+            ->count();
+
+            // 计算建议退费金额
+            $consumedAmount = $attendedLessons * $enrollment->price_per_lesson;
+            $suggestedRefundAmount = max(0, $enrollment->actual_amount - $consumedAmount);
+
+            return response()->json([
+                'code' => 200,
+                'message' => '获取退费信息成功',
+                'data' => [
+                    'enrollment_id' => $enrollment->id,
+                    'student_name' => $enrollment->student->name,
+                    'course_name' => $enrollment->course->name,
+                    'original_amount' => $enrollment->actual_amount,
+                    'price_per_lesson' => $enrollment->price_per_lesson,
+                    'total_lessons' => $enrollment->total_lessons,
+                    'attended_lessons' => $attendedLessons,
+                    'consumed_amount' => $consumedAmount,
+                    'suggested_refund_amount' => $suggestedRefundAmount,
+                    'max_refund_amount' => $enrollment->actual_amount, // 最大可退费金额
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('获取退费信息失败: ' . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'message' => '获取退费信息失败：' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * 退费处理
      */
     public function refund(Request $request, string $id): JsonResponse
@@ -323,6 +371,27 @@ class StudentEnrollmentController extends Controller
 
             // 注意：学员的总剩余课时是通过动态计算所有有效报名订单的 remaining_lessons 之和得出的。
             // 因此，此处无需也无法直接修改 students 表。将此订单的剩余课时清零即完成了课时“返还”的逻辑。
+
+            // 检查学员是否还有其他有效的报名记录
+            $student = $enrollment->student;
+            $hasActiveEnrollments = $student->enrollments()
+                ->where('id', '!=', $enrollment->id)
+                ->whereIn('status', ['active', 'completed'])
+                ->where('payment_status', '!=', 'refunded')
+                ->exists();
+
+            // 如果没有其他有效报名记录，将学员状态调整为已退费学员
+            if (!$hasActiveEnrollments && $student->student_type === Student::TYPE_ENROLLED) {
+                $student->update(['student_type' => Student::TYPE_REFUNDED]);
+            }
+
+            // 将该学员从所有相关班级中标记为已退班
+            $student->studentClasses()
+                ->whereHas('class', function ($q) use ($enrollment) {
+                    $q->where('course_id', $enrollment->course_id);
+                })
+                ->where('status', 'active')
+                ->update(['status' => 'dropped']);  // 已退班
 
             DB::commit();
 
