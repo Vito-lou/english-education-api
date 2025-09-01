@@ -82,6 +82,14 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::post('student-classes/{studentClass}/transfer', [\App\Http\Controllers\Api\Admin\StudentClassController::class, 'transfer']);
         Route::apiResource('student-classes', \App\Http\Controllers\Api\Admin\StudentClassController::class);
 
+        // 家校互动管理
+        Route::get('lesson-arrangements/schedule/{scheduleId}/lessons', [\App\Http\Controllers\Api\Admin\LessonArrangementController::class, 'getAvailableLessons']);
+        Route::apiResource('lesson-arrangements', \App\Http\Controllers\Api\Admin\LessonArrangementController::class);
+        Route::apiResource('homework-assignments', \App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class);
+        Route::get('lesson-comments/schedule/{scheduleId}', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'getScheduleComments']);
+        Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);
+        Route::apiResource('lesson-comments', \App\Http\Controllers\Api\Admin\LessonCommentController::class);
+
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
         Route::get('institutions/{institution}/statistics', [InstitutionController::class, 'statistics']);

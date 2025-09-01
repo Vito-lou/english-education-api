@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
         // 创建系统菜单
         $this->call(SystemMenuSeeder::class);
 
+        // 创建家校互动菜单
+        $this->call(ParentInteractionMenuSeeder::class);
+
         // 分配菜单权限
         $this->call(MenuBasedPermissionSeeder::class);
 

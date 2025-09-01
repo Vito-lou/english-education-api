@@ -97,6 +97,22 @@ class ClassSchedule extends Model
     // }
 
     /**
+     * 关联课程安排
+     */
+    public function lessonArrangement(): HasOne
+    {
+        return $this->hasOne(LessonArrangement::class, 'schedule_id');
+    }
+
+    /**
+     * 关联课后点评
+     */
+    public function lessonComments(): HasMany
+    {
+        return $this->hasMany(LessonComment::class, 'schedule_id');
+    }
+
+    /**
      * 获取状态中文名称
      */
     public function getStatusNameAttribute(): string
