@@ -15,6 +15,8 @@ class ClassSchedule extends Model
         'teacher_id',
         'time_slot_id',
         'schedule_date',
+        'lesson_id',
+        'teaching_focus',
         'lesson_content',
         'classroom',
         'status',
@@ -29,6 +31,26 @@ class ClassSchedule extends Model
         'time_slot_id' => 'integer',
         'created_by' => 'integer',
     ];
+
+    /**
+     * 格式化时间显示
+     */
+    protected $appends = ['formatted_schedule_date', 'formatted_created_at', 'formatted_updated_at'];
+
+    public function getFormattedScheduleDateAttribute()
+    {
+        return $this->schedule_date ? $this->schedule_date->format('Y-m-d') : null;
+    }
+
+    public function getFormattedCreatedAtAttribute()
+    {
+        return $this->created_at ? $this->created_at->format('Y-m-d H:i:s') : null;
+    }
+
+    public function getFormattedUpdatedAtAttribute()
+    {
+        return $this->updated_at ? $this->updated_at->format('Y-m-d H:i:s') : null;
+    }
 
     /**
      * 状态常量
@@ -97,11 +119,11 @@ class ClassSchedule extends Model
     // }
 
     /**
-     * 关联课程安排
+     * 关联课时
      */
-    public function lessonArrangement(): HasOne
+    public function lesson(): BelongsTo
     {
-        return $this->hasOne(LessonArrangement::class, 'schedule_id');
+        return $this->belongsTo(Lesson::class);
     }
 
     /**

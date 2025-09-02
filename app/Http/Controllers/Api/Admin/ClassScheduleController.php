@@ -507,6 +507,162 @@ class ClassScheduleController extends Controller
             'data' => $data,
         ]);
     }
+
+    /**
+     * 获取指定排课可用的课时列表（按级别筛选）
+     */
+    public function getAvailableLessons(Request $request, string $id): JsonResponse
+    {
+        $schedule = ClassSchedule::with(['class.level'])->find($id);
+
+        if (!$schedule) {
+            return response()->json([
+                'code' => 404,
+                'message' => '排课不存在',
+            ], 404);
+        }
+
+        // 权限检查
+        if ($schedule->class->institution_id !== Auth::user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权访问',
+            ], 403);
+        }
+
+        // 获取该级别的课程单元和课时
+        $units = \App\Models\CourseUnit::with(['lessons' => function ($q) {
+            $q->where('status', 'active')->orderBy('sort_order');
+        }])
+        ->where('level_id', $schedule->class->level_id)
+        ->where('status', 'active')
+        ->orderBy('sort_order')
+        ->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => '获取成功',
+            'data' => [
+                'schedule' => $schedule,
+                'units' => $units,
+            ],
+        ]);
+    }
+
+    /**
+     * 设置排课的课程内容
+     */
+    public function setLessonContent(Request $request, string $id): JsonResponse
+    {
+        $schedule = ClassSchedule::with('class')->find($id);
+
+        if (!$schedule) {
+            return response()->json([
+                'code' => 404,
+                'message' => '排课不存在',
+            ], 404);
+        }
+
+        // 权限检查
+        if ($schedule->class->institution_id !== Auth::user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权操作',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'lesson_id' => 'nullable|exists:lessons,id',
+            'teaching_focus' => 'nullable|string',
+        ]);
+
+        // 如果设置了课时，验证课时是否属于正确的级别
+        if ($validated['lesson_id']) {
+            $lesson = \App\Models\Lesson::with('unit')->find($validated['lesson_id']);
+            if ($lesson && $lesson->unit->level_id !== $schedule->class->level_id) {
+                return response()->json([
+                    'code' => 400,
+                    'message' => '所选课时不属于该班级的级别',
+                ], 400);
+            }
+        }
+
+        $schedule->update([
+            'lesson_id' => $validated['lesson_id'] ?: null,
+            'teaching_focus' => $validated['teaching_focus'] ?: null,
+        ]);
+
+        $schedule->load(['class', 'course', 'teacher', 'timeSlot', 'lesson.unit.course']);
+
+        return response()->json([
+            'code' => 200,
+            'message' => '设置成功',
+            'data' => $schedule,
+        ]);
+    }
+
+    /**
+     * 获取课程安排列表（用于家校互动）
+     */
+    public function getLessonArrangements(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $query = ClassSchedule::with([
+            'class',
+            'teacher',
+            'timeSlot',
+            'lesson.unit.course'
+        ])->whereHas('class', function ($q) use ($user) {
+            $q->where('institution_id', $user->institution_id);
+        })->whereNotNull('lesson_id'); // 只显示已安排课程内容的排课
+
+        // 筛选条件
+        if ($request->filled('class_id')) {
+            $query->where('class_id', $request->get('class_id'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('schedule_date', '>=', $request->get('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('schedule_date', '<=', $request->get('date_to'));
+        }
+
+        $schedules = $query->orderBy('schedule_date', 'desc')
+            ->paginate($request->get('per_page', 15));
+
+        return response()->json([
+            'code' => 200,
+            'message' => '获取成功',
+            'data' => $schedules,
+        ]);
+    }
+
+    /**
+     * 获取未安排课程内容的排课列表
+     */
+    public function getUnassignedSchedules(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $query = ClassSchedule::with(['class', 'teacher', 'timeSlot'])
+            ->whereHas('class', function ($q) use ($user) {
+                $q->where('institution_id', $user->institution_id);
+            })
+            ->whereNull('lesson_id') // 只显示未安排课程内容的排课
+            ->where('status', 'scheduled'); // 只显示已安排的排课
+
+        $schedules = $query->orderBy('schedule_date', 'asc')
+            ->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => '获取成功',
+            'data' => $schedules,
+        ]);
+    }
 }
 
 

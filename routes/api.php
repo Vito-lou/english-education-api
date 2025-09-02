@@ -83,8 +83,10 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::apiResource('student-classes', \App\Http\Controllers\Api\Admin\StudentClassController::class);
 
         // 家校互动管理
-        Route::get('lesson-arrangements/schedule/{scheduleId}/lessons', [\App\Http\Controllers\Api\Admin\LessonArrangementController::class, 'getAvailableLessons']);
-        Route::apiResource('lesson-arrangements', \App\Http\Controllers\Api\Admin\LessonArrangementController::class);
+        Route::get('class-schedules/lesson-arrangements', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getLessonArrangements']);
+        Route::get('class-schedules/unassigned', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getUnassignedSchedules']);
+        Route::get('class-schedules/{schedule}/available-lessons', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getAvailableLessons']);
+        Route::put('class-schedules/{schedule}/lesson-content', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'setLessonContent']);
         Route::apiResource('homework-assignments', \App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class);
         Route::get('lesson-comments/schedule/{scheduleId}', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'getScheduleComments']);
         Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);
