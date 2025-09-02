@@ -87,6 +87,11 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::get('class-schedules/unassigned', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getUnassignedSchedules']);
         Route::get('class-schedules/{schedule}/available-lessons', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'getAvailableLessons']);
         Route::put('class-schedules/{schedule}/lesson-content', [\App\Http\Controllers\Api\Admin\ClassScheduleController::class, 'setLessonContent']);
+
+        // 作业管理
+        Route::get('homework-assignments/classes', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getClasses']);
+        Route::get('homework-assignments/{id}/submissions', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getSubmissions']);
+        Route::post('homework-assignments/{id}/update', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'update']); // 专门的更新路由
         Route::apiResource('homework-assignments', \App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class);
         Route::get('lesson-comments/schedule/{scheduleId}', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'getScheduleComments']);
         Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);

@@ -4,29 +4,37 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HomeworkAssignment extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
-        'arrangement_id',
         'title',
-        'content',
+        'class_id',
         'due_date',
+        'requirements',
+        'attachments',
+        'status',
         'created_by',
+        'institution_id',
     ];
 
     protected $casts = [
-        'due_date' => 'date',
+        'due_date' => 'datetime',
+        'attachments' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     /**
-     * 关联课程安排
+     * 关联班级
      */
-    public function arrangement(): BelongsTo
+    public function class(): BelongsTo
     {
-        return $this->belongsTo(LessonArrangement::class, 'arrangement_id');
+        return $this->belongsTo(ClassModel::class, 'class_id');
     }
 
     /**
@@ -38,10 +46,96 @@ class HomeworkAssignment extends Model
     }
 
     /**
-     * 获取状态
+     * 关联机构
      */
-    public function getStatusAttribute(): string
+    public function institution(): BelongsTo
     {
-        return $this->due_date < now()->toDateString() ? 'expired' : 'active';
+        return $this->belongsTo(Institution::class);
+    }
+
+    /**
+     * 关联作业提交记录
+     */
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(HomeworkSubmission::class);
+    }
+
+    /**
+     * 获取状态中文名
+     */
+    public function getStatusNameAttribute(): string
+    {
+        return match($this->status) {
+            'active' => '进行中',
+            'expired' => '已过期',
+            'draft' => '草稿',
+            default => '未知状态',
+        };
+    }
+
+    /**
+     * 检查是否已过期
+     */
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->due_date < now();
+    }
+
+    /**
+     * 获取提交统计
+     */
+    public function getSubmissionStatsAttribute(): array
+    {
+        $totalStudents = $this->class->activeStudents()->count();
+        $submittedCount = $this->submissions()->count();
+
+        return [
+            'total_students' => $totalStudents,
+            'submitted_count' => $submittedCount,
+            'pending_count' => $totalStudents - $submittedCount,
+            'submission_rate' => $totalStudents > 0 ? round(($submittedCount / $totalStudents) * 100, 2) : 0,
+        ];
+    }
+
+    /**
+     * 作用域：按机构筛选
+     */
+    public function scopeForInstitution($query, $institutionId)
+    {
+        return $query->where('institution_id', $institutionId);
+    }
+
+    /**
+     * 作用域：按状态筛选
+     */
+    public function scopeByStatus($query, $status)
+    {
+        if ($status && $status !== 'all') {
+            return $query->where('status', $status);
+        }
+        return $query;
+    }
+
+    /**
+     * 作用域：按班级筛选
+     */
+    public function scopeByClass($query, $classId)
+    {
+        if ($classId) {
+            return $query->where('class_id', $classId);
+        }
+        return $query;
+    }
+
+    /**
+     * 作用域：搜索标题
+     */
+    public function scopeSearch($query, $search)
+    {
+        if ($search) {
+            return $query->where('title', 'like', '%' . $search . '%');
+        }
+        return $query;
     }
 }
