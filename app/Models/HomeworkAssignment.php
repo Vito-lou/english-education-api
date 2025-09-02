@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -14,6 +15,7 @@ class HomeworkAssignment extends Model
     protected $fillable = [
         'title',
         'class_id',
+        'unit_id',
         'due_date',
         'requirements',
         'attachments',
@@ -59,6 +61,27 @@ class HomeworkAssignment extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(HomeworkSubmission::class);
+    }
+
+    /**
+     * 关联单元
+     */
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(CourseUnit::class, 'unit_id');
+    }
+
+    /**
+     * 关联知识点
+     */
+    public function knowledgePoints(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            UnitKnowledgePoint::class,
+            'homework_knowledge_points',
+            'homework_assignment_id',
+            'knowledge_point_id'
+        );
     }
 
     /**

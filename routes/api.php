@@ -91,8 +91,15 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         // 作业管理
         Route::get('homework-assignments/classes', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getClasses']);
         Route::get('homework-assignments/{id}/submissions', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getSubmissions']);
+        Route::get('homework-assignments/classes/{classId}/units', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getUnitsForClass']);
+        Route::get('homework-assignments/units/{unitId}/knowledge-points', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getKnowledgePointsForUnit']);
+        Route::get('homework-assignments/classes/{classId}/units/{unitId}/history', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'getUnitHomeworkHistory']);
         Route::post('homework-assignments/{id}/update', [\App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class, 'update']); // 专门的更新路由
         Route::apiResource('homework-assignments', \App\Http\Controllers\Api\Admin\HomeworkAssignmentController::class);
+
+        // 单元知识点管理
+        Route::post('unit-knowledge-points/update-sort', [\App\Http\Controllers\Api\Admin\UnitKnowledgePointController::class, 'updateSort']);
+        Route::apiResource('unit-knowledge-points', \App\Http\Controllers\Api\Admin\UnitKnowledgePointController::class);
         Route::get('lesson-comments/schedule/{scheduleId}', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'getScheduleComments']);
         Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);
         Route::apiResource('lesson-comments', \App\Http\Controllers\Api\Admin\LessonCommentController::class);

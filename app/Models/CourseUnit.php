@@ -17,6 +17,7 @@ class CourseUnit extends Model
         'name',
         'description',
         'learning_objectives',
+        'story_content',
         'sort_order',
         'status',
     ];
@@ -47,5 +48,13 @@ class CourseUnit extends Model
     public function lessons(): HasMany
     {
         return $this->hasMany(Lesson::class, 'unit_id')->orderBy('sort_order');
+    }
+
+    /**
+     * 知识点列表
+     */
+    public function knowledgePoints(): HasMany
+    {
+        return $this->hasMany(UnitKnowledgePoint::class, 'unit_id')->orderBy('sort_order');
     }
 }

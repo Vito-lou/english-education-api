@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseUnit;
 use App\Models\Course;
 use App\Models\CourseLevel;
+use App\Models\UnitKnowledgePoint;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class CourseUnitController extends Controller
 {
@@ -16,7 +18,7 @@ class CourseUnitController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = CourseUnit::with(['course', 'level', 'lessons']);
+        $query = CourseUnit::with(['course', 'level', 'lessons', 'knowledgePoints']);
 
         // 按课程筛选
         if ($request->has('course_id')) {
@@ -52,7 +54,16 @@ class CourseUnitController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'learning_objectives' => 'nullable|string',
+            'story_content' => 'nullable|string',
             'sort_order' => 'integer|min:0',
+            'knowledge_points' => 'nullable|array',
+            'knowledge_points.*.id' => 'nullable|integer', // 移除exists验证，因为新知识点没有ID
+            'knowledge_points.*.type' => 'required_with:knowledge_points|in:vocabulary,sentence_pattern,grammar',
+            'knowledge_points.*.content' => 'required_with:knowledge_points|string|max:255',
+
+            'knowledge_points.*.explanation' => 'nullable|string',
+            'knowledge_points.*.example_sentences' => 'nullable|array',
+            'knowledge_points.*.sort_order' => 'nullable|integer|min:0',
         ]);
 
         // 如果指定了级别，验证级别是否属于该课程
@@ -69,21 +80,48 @@ class CourseUnitController extends Controller
             }
         }
 
-        $unit = CourseUnit::create([
-            'course_id' => $request->course_id,
-            'level_id' => $request->level_id,
-            'name' => $request->name,
-            'description' => $request->description,
-            'learning_objectives' => $request->learning_objectives,
-            'sort_order' => $request->sort_order ?? 0,
-            'status' => 'active',
-        ]);
+        DB::beginTransaction();
+        try {
+            $unit = CourseUnit::create([
+                'course_id' => $request->course_id,
+                'level_id' => $request->level_id,
+                'name' => $request->name,
+                'description' => $request->description,
+                'learning_objectives' => $request->learning_objectives,
+                'story_content' => $request->story_content,
+                'sort_order' => $request->sort_order ?? 0,
+                'status' => 'active',
+            ]);
 
-        return response()->json([
-            'code' => 200,
-            'message' => '单元创建成功',
-            'data' => $unit->load(['course', 'level', 'lessons'])
-        ]);
+            // 创建知识点
+            if ($request->has('knowledge_points') && is_array($request->knowledge_points)) {
+                foreach ($request->knowledge_points as $index => $pointData) {
+                    UnitKnowledgePoint::create([
+                        'unit_id' => $unit->id,
+                        'type' => $pointData['type'],
+                        'content' => $pointData['content'],
+                        'explanation' => $pointData['explanation'] ?? null,
+                        'example_sentences' => $pointData['example_sentences'] ?? null,
+                        'sort_order' => $pointData['sort_order'] ?? $index,
+                        'status' => 'active',
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'message' => '单元创建成功',
+                'data' => $unit->load(['course', 'level', 'lessons', 'knowledgePoints'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => 500,
+                'message' => '创建失败：' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -91,7 +129,7 @@ class CourseUnitController extends Controller
      */
     public function show(CourseUnit $courseUnit): JsonResponse
     {
-        $courseUnit->load(['course', 'level', 'lessons']);
+        $courseUnit->load(['course', 'level', 'lessons', 'knowledgePoints']);
 
         return response()->json([
             'code' => 200,
@@ -110,7 +148,16 @@ class CourseUnitController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'learning_objectives' => 'nullable|string',
+            'story_content' => 'nullable|string',
             'sort_order' => 'integer|min:0',
+            'knowledge_points' => 'nullable|array',
+            'knowledge_points.*.id' => 'nullable|integer', // 移除exists验证，因为新知识点没有ID
+            'knowledge_points.*.type' => 'required_with:knowledge_points|in:vocabulary,sentence_pattern,grammar',
+            'knowledge_points.*.content' => 'required_with:knowledge_points|string|max:255',
+
+            'knowledge_points.*.explanation' => 'nullable|string',
+            'knowledge_points.*.example_sentences' => 'nullable|array',
+            'knowledge_points.*.sort_order' => 'nullable|integer|min:0',
         ]);
 
         // 如果指定了级别，验证级别是否属于该课程
@@ -127,15 +174,66 @@ class CourseUnitController extends Controller
             }
         }
 
-        $courseUnit->update($request->only([
-            'level_id', 'name', 'description', 'learning_objectives', 'sort_order'
-        ]));
+        DB::beginTransaction();
+        try {
+            $courseUnit->update($request->only([
+                'level_id', 'name', 'description', 'learning_objectives', 'story_content', 'sort_order'
+            ]));
 
-        return response()->json([
-            'code' => 200,
-            'message' => '单元更新成功',
-            'data' => $courseUnit->load(['course', 'level', 'lessons'])
-        ]);
+            // 更新知识点
+            if ($request->has('knowledge_points')) {
+                $existingIds = [];
+
+                foreach ($request->knowledge_points as $index => $pointData) {
+                    // 检查是否是现有知识点（有ID且ID存在于数据库中）
+                    if (isset($pointData['id']) && $pointData['id'] && is_numeric($pointData['id'])) {
+                        $knowledgePoint = UnitKnowledgePoint::find($pointData['id']);
+                        if ($knowledgePoint && $knowledgePoint->unit_id === $courseUnit->id) {
+                            // 更新现有知识点
+                            $knowledgePoint->update([
+                                'type' => $pointData['type'],
+                                'content' => $pointData['content'],
+                                'explanation' => $pointData['explanation'] ?? null,
+                                'example_sentences' => $pointData['example_sentences'] ?? null,
+                                'sort_order' => $pointData['sort_order'] ?? $index,
+                            ]);
+                            $existingIds[] = $pointData['id'];
+                        }
+                    } else {
+                        // 创建新知识点（无ID或ID无效）
+                        $newPoint = UnitKnowledgePoint::create([
+                            'unit_id' => $courseUnit->id,
+                            'type' => $pointData['type'],
+                            'content' => $pointData['content'],
+                            'explanation' => $pointData['explanation'] ?? null,
+                            'example_sentences' => $pointData['example_sentences'] ?? null,
+                            'sort_order' => $pointData['sort_order'] ?? $index,
+                            'status' => 'active',
+                        ]);
+                        $existingIds[] = $newPoint->id;
+                    }
+                }
+
+                // 删除不在更新列表中的知识点
+                UnitKnowledgePoint::where('unit_id', $courseUnit->id)
+                    ->whereNotIn('id', $existingIds)
+                    ->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'message' => '单元更新成功',
+                'data' => $courseUnit->load(['course', 'level', 'lessons', 'knowledgePoints'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => 500,
+                'message' => '更新失败：' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
