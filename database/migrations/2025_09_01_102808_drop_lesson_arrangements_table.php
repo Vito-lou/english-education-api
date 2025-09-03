@@ -11,7 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 只删除 lesson_arrangements 表
+        // 先删除外键约束，然后删除表
+        Schema::table('homework_assignments', function (Blueprint $table) {
+            $table->dropForeign(['arrangement_id']);
+        });
+
+        // 删除 lesson_arrangements 表
         Schema::dropIfExists('lesson_arrangements');
     }
 

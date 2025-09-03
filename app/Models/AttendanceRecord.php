@@ -8,14 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AttendanceRecord extends Model
 {
     protected $fillable = [
+        'record_type',
         'schedule_id',
+        'class_id',
+        'lesson_id',
+        'lesson_time', // 统一的上课时间字段
+        'lesson_content',
         'student_id',
         'attendance_status',
         'deducted_lessons',
-        'check_in_time',
         'absence_reason',
-        'makeup_required',
-        'makeup_scheduled',
         'teacher_notes',
         'recorded_by',
         'recorded_at',

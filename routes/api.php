@@ -104,6 +104,12 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);
         Route::apiResource('lesson-comments', \App\Http\Controllers\Api\Admin\LessonCommentController::class);
 
+        // 手动点名管理
+        Route::get('manual-attendance/classes/{classId}/students', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'getClassStudents']);
+        Route::get('manual-attendance/lessons', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'getLessons']);
+        Route::post('manual-attendance', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'store']);
+        Route::get('manual-attendance/classes/{classId}/records', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'getClassManualRecords']);
+
         // 机构管理
         Route::apiResource('institutions', InstitutionController::class);
         Route::get('institutions/{institution}/statistics', [InstitutionController::class, 'statistics']);
@@ -159,17 +165,20 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         });
     });
 
-    // H5端API (english-education-h5) - TODO: 创建对应控制器
-    // Route::prefix('h5')->group(function () {
-    //     // 学员信息查询
-    //     Route::get('students/{student}/profile', [\App\Http\Controllers\Api\H5\StudentController::class, 'profile']);
-    //     Route::get('students/{student}/progress', [\App\Http\Controllers\Api\H5\StudentController::class, 'progress']);
-    //     Route::get('students/{student}/class-hours', [\App\Http\Controllers\Api\H5\StudentController::class, 'classHours']);
-    //
-    //     // 课程信息
-    //     Route::get('courses/levels', [\App\Http\Controllers\Api\H5\CourseController::class, 'levels']);
-    //     Route::get('courses/levels/{level}', [\App\Http\Controllers\Api\H5\CourseController::class, 'levelDetail']);
-    // });
+    // H5端API (english-education-h5)
+    Route::prefix('h5')->group(function () {
+        // 学员信息查询
+        Route::get('students/search', [\App\Http\Controllers\Api\H5\StudentController::class, 'searchByName']);
+        Route::get('students/{id}', [\App\Http\Controllers\Api\H5\StudentController::class, 'getDetail']);
+        Route::get('students/{id}/progress', [\App\Http\Controllers\Api\H5\StudentController::class, 'getProgress']);
+        Route::get('students/{id}/class-hours', [\App\Http\Controllers\Api\H5\StudentController::class, 'getClassHours']);
+        Route::get('students/{id}/attendance-records', [\App\Http\Controllers\Api\H5\StudentController::class, 'getAttendanceRecords']);
+        Route::get('students/{id}/class-hours-summary', [\App\Http\Controllers\Api\H5\StudentController::class, 'getClassHoursSummary']);
+
+        // 课程信息 - TODO: 创建CourseController
+        // Route::get('courses/levels', [\App\Http\Controllers\Api\H5\CourseController::class, 'levels']);
+        // Route::get('courses/levels/{level}', [\App\Http\Controllers\Api\H5\CourseController::class, 'levelDetail']);
+    });
 
     // 原典法系统路由 - TODO: 实现这些控制器
     // Route::prefix('offline')->group(function () {

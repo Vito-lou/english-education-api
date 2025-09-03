@@ -376,6 +376,9 @@ class ClassScheduleController extends Controller
             return response()->json(['code' => 403, 'message' => '无权操作'], 403);
         }
 
+        // 加载时间段信息
+        $schedule->load('timeSlot');
+
         $validated = $request->validate([
             'lesson_content' => 'nullable|string|max:1000',
             'students' => 'required|array',
@@ -412,12 +415,21 @@ class ClassScheduleController extends Controller
                 $oldDeductedLessons = $oldAttendance ? (float)$oldAttendance->deducted_lessons : 0;
 
                 // 2. 更新或创建考勤记录
+                // 计算lesson_time：排课日期 + 时间段开始时间
+                $timeSlot = $schedule->timeSlot;
+                if (!$timeSlot) {
+                    throw new \Exception("排课ID {$schedule->id} 没有关联的时间段");
+                }
+                $lessonTime = $schedule->schedule_date->format('Y-m-d') . ' ' . $timeSlot->start_time;
+
                 AttendanceRecord::updateOrCreate(
                     [
                         'schedule_id' => $schedule->id,
                         'student_id' => $studentData['student_id'],
                     ],
                     [
+                        'record_type' => 'scheduled', // 排课点名
+                        'lesson_time' => $lessonTime, // 设置统一的上课时间
                         'attendance_status' => $studentData['attendance_status'],
                         'deducted_lessons' => $studentData['deducted_lessons'],
                         'teacher_notes' => $studentData['remarks'],
@@ -459,21 +471,45 @@ class ClassScheduleController extends Controller
             return response()->json(['code' => 403, 'message' => '无权访问'], 403);
         }
 
-        $query = AttendanceRecord::with(['schedule.course', 'schedule.teacher', 'schedule.timeSlot', 'student'])
-            ->whereHas('schedule', function ($q) use ($classId) {
-                $q->where('class_id', $classId);
+        $query = AttendanceRecord::with(['schedule.course', 'schedule.teacher', 'schedule.timeSlot', 'student', 'recorder'])
+            ->where(function ($q) use ($classId) {
+                // 包含有排课的记录
+                $q->whereHas('schedule', function ($subQ) use ($classId) {
+                    $subQ->where('class_id', $classId);
+                })
+                // 或者包含手动点名记录
+                ->orWhere(function ($subQ) use ($classId) {
+                    $subQ->where('record_type', 'manual')
+                         ->where('class_id', $classId);
+                });
             });
 
         // 筛选条件
         if ($request->filled('date_from')) {
-            $query->whereHas('schedule', function ($q) use ($request) {
-                $q->where('schedule_date', '>=', $request->get('date_from'));
+            $query->where(function ($q) use ($request) {
+                // 有排课的记录按排课日期筛选
+                $q->whereHas('schedule', function ($subQ) use ($request) {
+                    $subQ->where('schedule_date', '>=', $request->get('date_from'));
+                })
+                // 手动点名记录按上课时间筛选
+                ->orWhere(function ($subQ) use ($request) {
+                    $subQ->where('record_type', 'manual')
+                         ->whereDate('lesson_time', '>=', $request->get('date_from'));
+                });
             });
         }
 
         if ($request->filled('date_to')) {
-            $query->whereHas('schedule', function ($q) use ($request) {
-                $q->where('schedule_date', '<=', $request->get('date_to'));
+            $query->where(function ($q) use ($request) {
+                // 有排课的记录按排课日期筛选
+                $q->whereHas('schedule', function ($subQ) use ($request) {
+                    $subQ->where('schedule_date', '<=', $request->get('date_to'));
+                })
+                // 手动点名记录按上课时间筛选
+                ->orWhere(function ($subQ) use ($request) {
+                    $subQ->where('record_type', 'manual')
+                         ->whereDate('lesson_time', '<=', $request->get('date_to'));
+                });
             });
         }
 
@@ -486,19 +522,39 @@ class ClassScheduleController extends Controller
         $records = $query->orderBy('recorded_at', 'desc')->get();
 
         $data = $records->map(function ($record) {
-            return [
-                'id' => $record->id,
-                'schedule_date' => $record->schedule->schedule_date->format('Y-m-d'),
-                'time_range' => $record->schedule->timeSlot->time_range,
-                'course_name' => $record->schedule->course->name,
-                'teacher_name' => $record->schedule->teacher->name,
-                'student_name' => $record->student->name,
-                'attendance_status' => $record->attendance_status,
-                'status_name' => $record->status_name,
-                'deducted_lessons' => (float)$record->deducted_lessons,
-                'teacher_notes' => $record->teacher_notes,
-                'recorded_at' => $record->recorded_at->format('Y-m-d H:i:s'),
-            ];
+            if ($record->record_type === 'manual') {
+                // 手动点名记录
+                return [
+                    'id' => $record->id,
+                    'record_type' => 'manual',
+                    'schedule_date' => $record->lesson_time ? date('Y-m-d', strtotime($record->lesson_time)) : '',
+                    'time_range' => $record->lesson_time ? date('H:i', strtotime($record->lesson_time)) : '手动补录',
+                    'course_name' => $record->lesson_content ?: '手动补录课程',
+                    'teacher_name' => $record->recorder ? $record->recorder->name : '未知',
+                    'student_name' => $record->student->name,
+                    'attendance_status' => $record->attendance_status,
+                    'status_name' => $record->status_name,
+                    'deducted_lessons' => (float)$record->deducted_lessons,
+                    'teacher_notes' => $record->teacher_notes,
+                    'recorded_at' => $record->recorded_at->format('Y-m-d H:i:s'),
+                ];
+            } else {
+                // 正常排课记录
+                return [
+                    'id' => $record->id,
+                    'record_type' => 'scheduled',
+                    'schedule_date' => $record->schedule->schedule_date->format('Y-m-d'),
+                    'time_range' => $record->schedule->timeSlot->time_range,
+                    'course_name' => $record->schedule->course->name,
+                    'teacher_name' => $record->schedule->teacher->name,
+                    'student_name' => $record->student->name,
+                    'attendance_status' => $record->attendance_status,
+                    'status_name' => $record->status_name,
+                    'deducted_lessons' => (float)$record->deducted_lessons,
+                    'teacher_notes' => $record->teacher_notes,
+                    'recorded_at' => $record->recorded_at->format('Y-m-d H:i:s'),
+                ];
+            }
         });
 
         return response()->json([

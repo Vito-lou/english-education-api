@@ -31,4 +31,12 @@ class Lesson extends Model
     {
         return $this->belongsTo(CourseUnit::class, 'unit_id');
     }
+
+    /**
+     * 所属课程单元 (别名方法，用于兼容)
+     */
+    public function courseUnit(): BelongsTo
+    {
+        return $this->belongsTo(CourseUnit::class, 'unit_id');
+    }
 }

@@ -19,8 +19,6 @@ class TimeSlot extends Model
     ];
 
     protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
         'is_active' => 'boolean',
         'duration_minutes' => 'integer',
         'sort_order' => 'integer',
@@ -47,7 +45,7 @@ class TimeSlot extends Model
      */
     public function getDisplayNameAttribute(): string
     {
-        return $this->name . ' (' . $this->start_time->format('H:i') . '-' . $this->end_time->format('H:i') . ')';
+        return $this->name . ' (' . substr($this->start_time, 0, 5) . '-' . substr($this->end_time, 0, 5) . ')';
     }
 
     /**
@@ -55,7 +53,7 @@ class TimeSlot extends Model
      */
     public function getTimeRangeAttribute(): string
     {
-        return $this->start_time->format('H:i') . '-' . $this->end_time->format('H:i');
+        return substr($this->start_time, 0, 5) . '-' . substr($this->end_time, 0, 5);
     }
 
     /**
