@@ -71,6 +71,8 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         // 学员管理
         Route::get('students/statistics', [\App\Http\Controllers\Api\Admin\StudentController::class, 'statistics']);
         Route::get('students/creatable-types', [\App\Http\Controllers\Api\Admin\StudentController::class, 'getCreatableTypes']);
+        Route::post('students/{student}/link-user', [\App\Http\Controllers\Api\Admin\StudentController::class, 'linkUser']);
+        Route::delete('students/{student}/unlink-user', [\App\Http\Controllers\Api\Admin\StudentController::class, 'unlinkUser']);
         Route::apiResource('students', \App\Http\Controllers\Api\Admin\StudentController::class);
 
         // 学员报名管理
@@ -168,7 +170,14 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
     // H5端API (english-education-h5)
     Route::prefix('h5')->group(function () {
         // 学员信息查询
+        Route::get('students/debug', [\App\Http\Controllers\Api\H5\StudentController::class, 'debug']); // 调试端点
         Route::get('students/search', [\App\Http\Controllers\Api\H5\StudentController::class, 'searchByName']);
+
+        // 需要认证的端点
+        Route::middleware(['auth:sanctum'])->group(function () {
+            Route::get('my-students', [\App\Http\Controllers\Api\H5\StudentController::class, 'getMyStudents']);
+        });
+
         Route::get('students/{id}', [\App\Http\Controllers\Api\H5\StudentController::class, 'getDetail']);
         Route::get('students/{id}/progress', [\App\Http\Controllers\Api\H5\StudentController::class, 'getProgress']);
         Route::get('students/{id}/class-hours', [\App\Http\Controllers\Api\H5\StudentController::class, 'getClassHours']);

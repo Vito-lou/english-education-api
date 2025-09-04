@@ -23,10 +23,12 @@ class StudentController extends Controller
         $name = $request->get('name');
 
         $students = Student::with(['user:id,name'])
-            ->whereHas('user', function ($query) use ($name) {
-                $query->where('name', 'like', "%{$name}%");
+            ->where(function ($query) use ($name) {
+                $query->whereHas('user', function ($subQuery) use ($name) {
+                    $subQuery->where('name', 'like', "%{$name}%");
+                })
+                ->orWhere('name', 'like', "%{$name}%");
             })
-            ->orWhere('name', 'like', "%{$name}%")
             ->limit(10)
             ->get(['id', 'user_id', 'name', 'student_type']);
 
@@ -39,6 +41,8 @@ class StudentController extends Controller
                     'name' => $student->user->name ?? $student->name,
                     'student_id' => $student->id,
                     'current_level' => $student->student_type,
+                    'user_id' => $student->user_id, // 添加调试信息
+                    'user_name' => $student->user->name ?? null, // 添加调试信息
                 ];
             }),
         ]);
@@ -250,6 +254,67 @@ class StudentController extends Controller
                 'used_lessons' => (float) $usedLessons,
                 'remaining_lessons' => (float) $remainingLessons,
             ],
+        ]);
+    }
+
+    /**
+     * 获取当前用户关联的学员信息
+     */
+    public function getMyStudents(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => '用户未登录',
+            ], 401);
+        }
+
+        // 查找用户关联的学员
+        $students = Student::with(['user:id,name'])
+            ->where('user_id', $user->id)
+            ->orWhereHas('users', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->get(['id', 'user_id', 'name', 'student_type']);
+
+        return response()->json([
+            'success' => true,
+            'message' => '获取成功',
+            'data' => $students->map(function ($student) {
+                return [
+                    'id' => $student->id,
+                    'name' => $student->user->name ?? $student->name,
+                    'student_id' => $student->id,
+                    'current_level' => $student->student_type,
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * 调试：获取所有学员信息
+     */
+    public function debug(): JsonResponse
+    {
+        $students = Student::with(['user:id,name,email'])
+            ->get(['id', 'user_id', 'name', 'student_type', 'parent_name']);
+
+        return response()->json([
+            'success' => true,
+            'message' => '调试信息',
+            'data' => $students->map(function ($student) {
+                return [
+                    'student_id' => $student->id,
+                    'student_name' => $student->name,
+                    'parent_name' => $student->parent_name,
+                    'student_type' => $student->student_type,
+                    'user_id' => $student->user_id,
+                    'user_name' => $student->user->name ?? null,
+                    'user_email' => $student->user->email ?? null,
+                ];
+            }),
         ]);
     }
 }

@@ -311,4 +311,106 @@ class StudentController extends Controller
             'data' => Student::getCreatableTypes(),
         ]);
     }
+
+    /**
+     * 关联用户到学员
+     */
+    public function linkUser(Request $request, Student $student): JsonResponse
+    {
+        // 检查权限：只能操作同机构的学员
+        if ($student->institution_id !== auth()->user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权操作该学员',
+            ], 403);
+        }
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::find($request->user_id);
+
+        // 检查用户是否属于同一机构
+        if ($user->institution_id !== auth()->user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '只能关联同机构的用户',
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // 更新学员的主要用户ID
+            $student->update(['user_id' => $user->id]);
+
+            // 在多对多关系表中添加关联（如果不存在）
+            if (!$student->users()->where('user_id', $user->id)->exists()) {
+                $student->users()->attach($user->id, [
+                    'relationship' => $student->parent_relationship ?? 'parent'
+                ]);
+            }
+
+            DB::commit();
+
+            $student->load(['user', 'users']);
+
+            return response()->json([
+                'code' => 200,
+                'message' => '用户关联成功',
+                'data' => new StudentResource($student),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'code' => 500,
+                'message' => '关联失败：' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * 取消学员与用户的关联
+     */
+    public function unlinkUser(Student $student): JsonResponse
+    {
+        // 检查权限：只能操作同机构的学员
+        if ($student->institution_id !== auth()->user()->institution_id) {
+            return response()->json([
+                'code' => 403,
+                'message' => '无权操作该学员',
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // 清除学员的主要用户ID
+            $student->update(['user_id' => null]);
+
+            // 清除多对多关系表中的所有关联
+            $student->users()->detach();
+
+            DB::commit();
+
+            $student->load(['user', 'users']);
+
+            return response()->json([
+                'code' => 200,
+                'message' => '取消关联成功',
+                'data' => new StudentResource($student),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'code' => 500,
+                'message' => '取消关联失败：' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

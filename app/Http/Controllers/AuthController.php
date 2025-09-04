@@ -32,10 +32,21 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
+        // 先检查用户是否存在
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => '用户不存在'
+            ], 404);
+        }
+
+        // 检查密码是否正确
         if (!Auth::attempt($credentials)) {
             return response()->json([
                 'success' => false,
-                'message' => '邮箱或密码错误'
+                'message' => '密码错误'
             ], 401);
         }
 
