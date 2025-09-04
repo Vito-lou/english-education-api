@@ -183,6 +183,8 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::get('students/{id}/class-hours', [\App\Http\Controllers\Api\H5\StudentController::class, 'getClassHours']);
         Route::get('students/{id}/attendance-records', [\App\Http\Controllers\Api\H5\StudentController::class, 'getAttendanceRecords']);
         Route::get('students/{id}/class-hours-summary', [\App\Http\Controllers\Api\H5\StudentController::class, 'getClassHoursSummary']);
+        Route::get('students/{id}/schedule', [\App\Http\Controllers\Api\H5\StudentController::class, 'getSchedule']);
+        Route::get('students/{id}/schedule', [\App\Http\Controllers\Api\H5\StudentController::class, 'getSchedule']);
 
         // 课程信息 - TODO: 创建CourseController
         // Route::get('courses/levels', [\App\Http\Controllers\Api\H5\CourseController::class, 'levels']);

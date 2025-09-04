@@ -36,8 +36,8 @@ class TimeSlotController extends Controller
                 return [
                     'id' => $timeSlot->id,
                     'name' => $timeSlot->name,
-                    'start_time' => $timeSlot->start_time->format('H:i'),
-                    'end_time' => $timeSlot->end_time->format('H:i'),
+                    'start_time' => substr($timeSlot->start_time, 0, 5),
+                    'end_time' => substr($timeSlot->end_time, 0, 5),
                     'time_range' => $timeSlot->time_range,
                     'display_name' => $timeSlot->display_name,
                     'duration_minutes' => $timeSlot->duration_minutes,
@@ -85,8 +85,8 @@ class TimeSlotController extends Controller
             'data' => [
                 'id' => $timeSlot->id,
                 'name' => $timeSlot->name,
-                'start_time' => $timeSlot->start_time->format('H:i'),
-                'end_time' => $timeSlot->end_time->format('H:i'),
+                'start_time' => substr($timeSlot->start_time, 0, 5),
+                'end_time' => substr($timeSlot->end_time, 0, 5),
                 'time_range' => $timeSlot->time_range,
                 'display_name' => $timeSlot->display_name,
                 'duration_minutes' => $timeSlot->duration_minutes,
@@ -117,8 +117,8 @@ class TimeSlotController extends Controller
             'data' => [
                 'id' => $timeSlot->id,
                 'name' => $timeSlot->name,
-                'start_time' => $timeSlot->start_time->format('H:i'),
-                'end_time' => $timeSlot->end_time->format('H:i'),
+                'start_time' => substr($timeSlot->start_time, 0, 5),
+                'end_time' => substr($timeSlot->end_time, 0, 5),
                 'time_range' => $timeSlot->time_range,
                 'display_name' => $timeSlot->display_name,
                 'duration_minutes' => $timeSlot->duration_minutes,
@@ -155,8 +155,8 @@ class TimeSlotController extends Controller
 
         // 如果更新了时间，重新计算时长
         if (isset($validated['start_time']) || isset($validated['end_time'])) {
-            $startTime = \Carbon\Carbon::createFromFormat('H:i', $validated['start_time'] ?? $timeSlot->start_time->format('H:i'));
-            $endTime = \Carbon\Carbon::createFromFormat('H:i', $validated['end_time'] ?? $timeSlot->end_time->format('H:i'));
+            $startTime = \Carbon\Carbon::createFromFormat('H:i', $validated['start_time'] ?? substr($timeSlot->start_time, 0, 5));
+            $endTime = \Carbon\Carbon::createFromFormat('H:i', $validated['end_time'] ?? substr($timeSlot->end_time, 0, 5));
             $validated['duration_minutes'] = $endTime->diffInMinutes($startTime);
         }
 
@@ -168,8 +168,8 @@ class TimeSlotController extends Controller
             'data' => [
                 'id' => $timeSlot->id,
                 'name' => $timeSlot->name,
-                'start_time' => $timeSlot->start_time->format('H:i'),
-                'end_time' => $timeSlot->end_time->format('H:i'),
+                'start_time' => substr($timeSlot->start_time, 0, 5),
+                'end_time' => substr($timeSlot->end_time, 0, 5),
                 'time_range' => $timeSlot->time_range,
                 'display_name' => $timeSlot->display_name,
                 'duration_minutes' => $timeSlot->duration_minutes,
