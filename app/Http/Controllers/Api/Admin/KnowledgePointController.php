@@ -15,7 +15,7 @@ class KnowledgePointController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = KnowledgePoint::with(['tags', 'stories']);
+        $query = KnowledgePoint::with(['tags', 'stories', 'examples']);
 
         // 搜索
         if ($request->filled('search')) {
@@ -23,7 +23,11 @@ class KnowledgePointController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('definition_en', 'like', "%{$search}%")
-                  ->orWhere('definition_cn', 'like', "%{$search}%");
+                  ->orWhere('definition_cn', 'like', "%{$search}%")
+                  ->orWhereHas('examples', function ($eq) use ($search) {
+                      $eq->where('example_en', 'like', "%{$search}%")
+                         ->orWhere('example_cn', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -65,8 +69,10 @@ class KnowledgePointController extends Controller
             'definition_en' => 'nullable|string',
             'definition_cn' => 'nullable|string',
             'explanation' => 'nullable|string',
-            'example_sentence' => 'nullable|string',
-            'audio_url' => 'nullable|url|max:255',
+            'examples' => 'nullable|array',
+            'examples.*.example_en' => 'required_with:examples|string',
+            'examples.*.example_cn' => 'nullable|string',
+            'examples.*.sequence' => 'nullable|integer|min:0',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'exists:knowledge_tags,id',
         ]);
@@ -79,9 +85,18 @@ class KnowledgePointController extends Controller
                 'definition_en' => $validated['definition_en'] ?? null,
                 'definition_cn' => $validated['definition_cn'] ?? null,
                 'explanation' => $validated['explanation'] ?? null,
-                'example_sentence' => $validated['example_sentence'] ?? null,
-                'audio_url' => $validated['audio_url'] ?? null,
             ]);
+
+            // 创建例句
+            if (!empty($validated['examples'])) {
+                foreach ($validated['examples'] as $index => $example) {
+                    $knowledgePoint->examples()->create([
+                        'example_en' => $example['example_en'],
+                        'example_cn' => $example['example_cn'] ?? null,
+                        'sequence' => $example['sequence'] ?? $index,
+                    ]);
+                }
+            }
 
             // 关联标签
             if (!empty($validated['tag_ids'])) {
@@ -93,7 +108,7 @@ class KnowledgePointController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => '知识点创建成功',
-                'data' => $knowledgePoint->load(['tags']),
+                'data' => $knowledgePoint->load(['tags', 'examples']),
             ], 201);
 
         } catch (\Exception $e) {
@@ -110,7 +125,7 @@ class KnowledgePointController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $knowledgePoint = KnowledgePoint::with(['tags', 'stories'])->find($id);
+        $knowledgePoint = KnowledgePoint::with(['tags', 'stories', 'examples'])->find($id);
 
         if (!$knowledgePoint) {
             return response()->json([
@@ -145,8 +160,10 @@ class KnowledgePointController extends Controller
             'definition_en' => 'nullable|string',
             'definition_cn' => 'nullable|string',
             'explanation' => 'nullable|string',
-            'example_sentence' => 'nullable|string',
-            'audio_url' => 'nullable|url|max:255',
+            'examples' => 'nullable|array',
+            'examples.*.example_en' => 'required_with:examples|string',
+            'examples.*.example_cn' => 'nullable|string',
+            'examples.*.sequence' => 'nullable|integer|min:0',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'exists:knowledge_tags,id',
         ]);
@@ -159,9 +176,19 @@ class KnowledgePointController extends Controller
                 'definition_en' => $validated['definition_en'] ?? null,
                 'definition_cn' => $validated['definition_cn'] ?? null,
                 'explanation' => $validated['explanation'] ?? null,
-                'example_sentence' => $validated['example_sentence'] ?? null,
-                'audio_url' => $validated['audio_url'] ?? null,
             ]);
+
+            // 更新例句（先删除旧的，再创建新的）
+            $knowledgePoint->examples()->delete();
+            if (!empty($validated['examples'])) {
+                foreach ($validated['examples'] as $index => $example) {
+                    $knowledgePoint->examples()->create([
+                        'example_en' => $example['example_en'],
+                        'example_cn' => $example['example_cn'] ?? null,
+                        'sequence' => $example['sequence'] ?? $index,
+                    ]);
+                }
+            }
 
             // 更新标签关联
             if (isset($validated['tag_ids'])) {
@@ -173,7 +200,7 @@ class KnowledgePointController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => '知识点更新成功',
-                'data' => $knowledgePoint->load(['tags']),
+                'data' => $knowledgePoint->load(['tags', 'examples']),
             ]);
 
         } catch (\Exception $e) {

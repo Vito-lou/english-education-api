@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KnowledgePoint extends Model
 {
@@ -16,8 +17,6 @@ class KnowledgePoint extends Model
         'definition_en',
         'definition_cn',
         'explanation',
-        'example_sentence',
-        'audio_url',
     ];
 
     /**
@@ -44,6 +43,14 @@ class KnowledgePoint extends Model
             'knowledge_point_id',
             'knowledge_tag_id'
         )->withTimestamps();
+    }
+
+    /**
+     * 关联例句（一对多）
+     */
+    public function examples(): HasMany
+    {
+        return $this->hasMany(KnowledgePointExample::class)->ordered();
     }
 
     /**
