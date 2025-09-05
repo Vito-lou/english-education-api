@@ -106,6 +106,24 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::post('lesson-comments/batch', [\App\Http\Controllers\Api\Admin\LessonCommentController::class, 'batchStore']);
         Route::apiResource('lesson-comments', \App\Http\Controllers\Api\Admin\LessonCommentController::class);
 
+        // 素材中心管理
+        Route::prefix('material-center')->group(function () {
+            // 故事管理
+            Route::get('stories/difficulty-levels', [\App\Http\Controllers\Api\Admin\StoryController::class, 'getDifficultyLevels']);
+            Route::apiResource('stories', \App\Http\Controllers\Api\Admin\StoryController::class);
+
+            // 知识点管理
+            Route::get('knowledge-points/types', [\App\Http\Controllers\Api\Admin\KnowledgePointController::class, 'getTypes']);
+            Route::post('knowledge-points/batch-import', [\App\Http\Controllers\Api\Admin\KnowledgePointController::class, 'batchImport']);
+            Route::apiResource('knowledge-points', \App\Http\Controllers\Api\Admin\KnowledgePointController::class);
+
+            // 知识标签管理
+            Route::get('knowledge-tags/systems', [\App\Http\Controllers\Api\Admin\KnowledgeTagController::class, 'getSystems']);
+            Route::get('knowledge-tags/by-system', [\App\Http\Controllers\Api\Admin\KnowledgeTagController::class, 'getBySystem']);
+            Route::post('knowledge-tags/batch-create', [\App\Http\Controllers\Api\Admin\KnowledgeTagController::class, 'batchCreate']);
+            Route::apiResource('knowledge-tags', \App\Http\Controllers\Api\Admin\KnowledgeTagController::class);
+        });
+
         // 手动点名管理
         Route::get('manual-attendance/classes/{classId}/students', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'getClassStudents']);
         Route::get('manual-attendance/lessons', [\App\Http\Controllers\Api\Admin\ManualAttendanceController::class, 'getLessons']);
