@@ -68,6 +68,207 @@ php artisan migrate
 php artisan serve  # 运行在 http://localhost:8000
 ```
 
+## 🗄️ 数据库同步方案
+
+本项目使用真实数据进行开发，为确保多台电脑之间的数据一致性，我们提供了完整的数据库备份和还原方案。
+
+### 📋 使用场景
+
+-   **主开发电脑**：添加真实数据后，需要备份并同步到其他电脑
+-   **协同开发电脑**：需要获取最新的真实数据进行开发
+-   **新环境搭建**：快速获取完整的开发数据
+
+### 🛠️ 可用工具
+
+#### 方法 1：Artisan 命令（推荐）
+
+```bash
+# 备份数据库
+php artisan db:backup
+
+# 还原数据库
+php artisan db:backup --restore
+```
+
+#### 方法 2：Shell 脚本
+
+```bash
+# 备份数据库
+./scripts/backup-database.sh
+
+# 还原数据库
+./scripts/restore-database.sh
+```
+
+### 📋 完整工作流程
+
+#### 🖥️ 主开发电脑（添加新数据后）
+
+1. **备份数据库**
+
+    ```bash
+    php artisan db:backup
+    ```
+
+2. **提交备份到 Git**
+    ```bash
+    git add database/backups/latest.sql
+    git commit -m "更新数据库备份 - 添加新的学生和排课数据"
+    git push
+    ```
+
+#### 🏠 其他电脑（同步数据）
+
+1. **拉取最新代码**
+
+    ```bash
+    git pull
+    ```
+
+2. **还原数据库**
+
+    ```bash
+    php artisan db:backup --restore
+    ```
+
+    系统会显示备份文件信息并询问确认：
+
+    ```
+    开始还原数据库...
+    📁 备份文件: /path/to/database/backups/latest.sql
+    📊 文件大小: 128.64 KB
+    📅 修改时间: 2025-09-11 02:54:36
+
+    ⚠️  警告：此操作将覆盖当前数据库数据，是否继续？ (yes/no) [no]:
+    ```
+
+    输入 `yes` 确认还原。
+
+3. **验证数据同步**
+
+    ```bash
+    # 验证学生数据
+    php artisan tinker --execute="echo '学生总数: ' . App\Models\Student::count() . PHP_EOL;"
+
+    # 验证班级数据
+    php artisan tinker --execute="echo '班级总数: ' . App\Models\ClassModel::count() . PHP_EOL;"
+
+    # 验证机构信息
+    php artisan tinker --execute="echo '机构名称: ' . App\Models\Institution::first()->name . PHP_EOL;"
+    ```
+
+### 🔄 日常开发流程示例
+
+#### 场景 1：添加新学生数据
+
+```bash
+# 1. 在界面中添加学生数据
+# 2. 备份数据库
+php artisan db:backup
+
+# 3. 提交到Git
+git add database/backups/latest.sql
+git commit -m "添加新学生：张三、李四"
+git push
+```
+
+#### 场景 2：修改班级排课
+
+```bash
+# 1. 在界面中修改排课
+# 2. 备份数据库
+php artisan db:backup
+
+# 3. 提交到Git
+git add database/backups/latest.sql
+git commit -m "更新A1班级排课安排"
+git push
+```
+
+#### 场景 3：同步到其他电脑
+
+```bash
+# 1. 拉取最新代码
+git pull
+
+# 2. 还原数据库
+php artisan db:backup --restore
+
+# 3. 开始开发
+```
+
+### 📁 备份文件结构
+
+```
+english-education-api/
+├── database/
+│   └── backups/
+│       ├── README.md           # 说明文档
+│       ├── latest.sql          # 最新备份（Git跟踪）
+│       ├── backup_*.sql        # 历史备份（Git忽略）
+│       └── .gitignore          # Git配置
+├── scripts/
+│   ├── backup-database.sh      # 备份脚本
+│   └── restore-database.sh     # 还原脚本
+└── app/Console/Commands/
+    └── DatabaseBackup.php      # Artisan命令
+```
+
+### ⚠️ 重要注意事项
+
+#### 数据安全
+
+-   备份文件包含真实数据，请注意保护隐私
+-   不要将备份文件上传到公开仓库
+-   定期清理本地历史备份文件
+
+#### 操作安全
+
+-   还原数据库前会有确认提示
+-   还原操作会**完全覆盖**当前所有数据
+-   建议在还原前先备份当前数据（如有重要修改）
+
+#### 团队协作
+
+-   约定由一台主电脑负责数据维护
+-   其他电脑主要用于代码开发
+-   数据修改后及时备份和提交
+
+### 🚀 最佳实践
+
+1. **每次添加重要数据后立即备份**
+2. **使用有意义的提交信息**
+3. **定期同步数据到其他电脑**
+4. **保持备份文件的最新状态**
+
+### 🔧 故障排除
+
+#### 备份失败
+
+-   检查数据库连接配置（`.env`文件）
+-   确认 `mysqldump` 命令可用
+-   检查磁盘空间是否充足
+
+#### 还原失败
+
+-   检查备份文件是否存在：`ls -la database/backups/latest.sql`
+-   确认 `mysql` 命令可用
+-   检查数据库权限
+
+#### Git 冲突
+
+-   如果 `latest.sql` 有冲突，选择最新的版本
+-   必要时手动合并数据
+
+### 📖 详细文档
+
+-   **完整工作流程**：[数据库同步工作流程文档](docs/database-sync-workflow.md)
+-   **AI 助手指令**：[AI 数据库还原指令指南](AI_DATABASE_RESTORE_GUIDE.md)
+
+### 🤖 AI 助手使用说明
+
+如果您使用 AI 助手来帮助还原数据库，请让 AI 先阅读 [AI_DATABASE_RESTORE_GUIDE.md](AI_DATABASE_RESTORE_GUIDE.md) 文档，该文档包含了准确的操作指令和验证步骤。
+
 ### 前端项目创建
 
 详见：[前端项目配置指南](docs/frontend-setup.md)
