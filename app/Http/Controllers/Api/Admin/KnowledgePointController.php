@@ -64,7 +64,7 @@ class KnowledgePointController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:knowledge_points,name',
             'type' => 'required|in:vocabulary,grammar,phrase,sentence_pattern',
             'definition_en' => 'nullable|string',
             'definition_cn' => 'nullable|string',
@@ -155,7 +155,7 @@ class KnowledgePointController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:knowledge_points,name,' . $knowledgePoint->id,
             'type' => 'required|in:vocabulary,grammar,phrase,sentence_pattern',
             'definition_en' => 'nullable|string',
             'definition_cn' => 'nullable|string',

@@ -110,6 +110,9 @@ Route::middleware(['auth:sanctum', 'check.user.status'])->prefix('admin')->group
         Route::prefix('material-center')->group(function () {
             // 故事管理
             Route::get('stories/difficulty-levels', [\App\Http\Controllers\Api\Admin\StoryController::class, 'getDifficultyLevels']);
+            Route::get('stories/tree', [\App\Http\Controllers\Api\Admin\StoryController::class, 'getStoriesTree']);
+            Route::get('stories/{story}/chapters', [\App\Http\Controllers\Api\Admin\StoryController::class, 'getChapters']);
+            Route::post('stories/{story}/knowledge-points', [\App\Http\Controllers\Api\Admin\StoryController::class, 'createKnowledgePoint']);
             Route::apiResource('stories', \App\Http\Controllers\Api\Admin\StoryController::class);
 
             // 知识点管理

@@ -27,7 +27,7 @@ class HomeworkAssignmentController extends Controller
             'class.level',
             'class.teacher',
             'unit.course',
-            'knowledgePoints',
+            'storyKnowledgePoints',
             'creator',
             'submissions'
         ])->forInstitution($user->institution_id);
@@ -83,6 +83,8 @@ class HomeworkAssignmentController extends Controller
             'status' => 'in:active,draft',
             'knowledge_point_ids' => 'nullable|array',
             'knowledge_point_ids.*' => 'exists:unit_knowledge_points,id',
+            'story_knowledge_point_ids' => 'nullable|array',
+            'story_knowledge_point_ids.*' => 'exists:knowledge_points,id',
         ]);
 
         // 单独验证文件上传（如果有的话）
@@ -133,9 +135,9 @@ class HomeworkAssignmentController extends Controller
                 'institution_id' => Auth::user()->institution_id,
             ]);
 
-            // 关联知识点
-            if (!empty($validated['knowledge_point_ids'])) {
-                $assignment->knowledgePoints()->attach($validated['knowledge_point_ids']);
+            // 关联故事知识点
+            if (!empty($validated['story_knowledge_point_ids'])) {
+                $assignment->storyKnowledgePoints()->attach($validated['story_knowledge_point_ids']);
             }
 
             DB::commit();
@@ -145,7 +147,7 @@ class HomeworkAssignmentController extends Controller
                 'class.level',
                 'class.teacher',
                 'unit.course',
-                'knowledgePoints',
+                'storyKnowledgePoints',
                 'creator'
             ]);
         } catch (\Exception $e) {
@@ -232,6 +234,8 @@ class HomeworkAssignmentController extends Controller
             'status' => 'in:active,draft,expired',
             'knowledge_point_ids' => 'nullable|array',
             'knowledge_point_ids.*' => 'exists:unit_knowledge_points,id',
+            'story_knowledge_point_ids' => 'nullable|array',
+            'story_knowledge_point_ids.*' => 'exists:knowledge_points,id',
             'remove_attachments' => 'nullable|array', // 要删除的附件索引
         ]);
 
@@ -294,11 +298,11 @@ class HomeworkAssignmentController extends Controller
                 'status' => $validated['status'] ?? $assignment->status,
             ]);
 
-            // 更新知识点关联
-            if (isset($validated['knowledge_point_ids'])) {
-                $assignment->knowledgePoints()->sync($validated['knowledge_point_ids']);
+            // 更新故事知识点关联
+            if (isset($validated['story_knowledge_point_ids'])) {
+                $assignment->storyKnowledgePoints()->sync($validated['story_knowledge_point_ids']);
             } else {
-                $assignment->knowledgePoints()->detach();
+                $assignment->storyKnowledgePoints()->detach();
             }
 
             DB::commit();
@@ -308,7 +312,7 @@ class HomeworkAssignmentController extends Controller
                 'class.level',
                 'class.teacher',
                 'unit.course',
-                'knowledgePoints',
+                'storyKnowledgePoints',
                 'creator'
             ]);
         } catch (\Exception $e) {
@@ -447,7 +451,7 @@ class HomeworkAssignmentController extends Controller
         }
 
         // 获取班级对应课程和级别的单元
-        $query = CourseUnit::with(['knowledgePoints'])
+        $query = CourseUnit::with(['story.knowledgePoints'])
             ->where('course_id', $class->course_id);
 
         if ($class->level_id) {
@@ -472,7 +476,7 @@ class HomeworkAssignmentController extends Controller
         $classId = $request->get('class_id');
 
         // 验证单元是否存在
-        $unit = CourseUnit::with(['knowledgePoints', 'course'])
+        $unit = CourseUnit::with(['course', 'story.knowledgePoints'])
             ->where('id', $unitId)
             ->first();
 
@@ -484,17 +488,23 @@ class HomeworkAssignmentController extends Controller
         }
 
         // 获取知识点列表
-        $knowledgePoints = $unit->knowledgePoints()->orderBy('sort_order')->get();
+        // 只使用关联故事的知识点
+        $knowledgePoints = collect();
+        $knowledgePointType = 'story'; // 标记知识点来源
+
+        if ($unit->story && $unit->story->knowledgePoints->count() > 0) {
+            $knowledgePoints = $unit->story->knowledgePoints;
+        }
 
         // 如果提供了班级ID，查询该班级在此单元的历史作业中已布置的知识点
         $assignedKnowledgePointIds = [];
         if ($classId) {
             $assignedKnowledgePointIds = HomeworkAssignment::where('class_id', $classId)
                 ->where('unit_id', $unitId)
-                ->whereHas('knowledgePoints')
-                ->with('knowledgePoints')
+                ->whereHas('storyKnowledgePoints')
+                ->with('storyKnowledgePoints')
                 ->get()
-                ->pluck('knowledgePoints')
+                ->pluck('storyKnowledgePoints')
                 ->flatten()
                 ->pluck('id')
                 ->unique()
@@ -513,6 +523,7 @@ class HomeworkAssignmentController extends Controller
             'data' => [
                 'unit' => $unit,
                 'knowledge_points' => $knowledgePoints,
+                'knowledge_point_type' => $knowledgePointType, // 标记知识点来源
                 'assigned_count' => count($assignedKnowledgePointIds),
                 'total_count' => $knowledgePoints->count(),
             ],
@@ -539,7 +550,7 @@ class HomeworkAssignmentController extends Controller
         }
 
         // 获取该班级在指定单元的作业历史
-        $assignments = HomeworkAssignment::with(['knowledgePoints', 'creator'])
+        $assignments = HomeworkAssignment::with(['storyKnowledgePoints', 'creator'])
             ->where('class_id', $classId)
             ->where('unit_id', $unitId)
             ->orderBy('created_at', 'desc')

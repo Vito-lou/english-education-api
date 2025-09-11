@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryChapter;
+use App\Models\KnowledgePoint;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,7 @@ class StoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Story::with(['chapters', 'knowledgePoints']);
+        $query = Story::with(['chapters', 'knowledgePoints.examples']);
 
         // 搜索
         if ($request->filled('search')) {
@@ -73,6 +74,19 @@ class StoryController extends Controller
             'chapters.*.content' => 'required_with:chapters|string',
             'knowledge_point_ids' => 'nullable|array',
             'knowledge_point_ids.*' => 'exists:knowledge_points,id',
+            'knowledge_points' => 'nullable|array',
+            'knowledge_points.*.id' => 'nullable|integer',
+            'knowledge_points.*.name' => 'required_with:knowledge_points|string|max:255',
+            'knowledge_points.*.type' => 'required_with:knowledge_points|in:vocabulary,grammar,phrase,sentence_pattern',
+            'knowledge_points.*.definition_en' => 'nullable|string',
+            'knowledge_points.*.definition_cn' => 'nullable|string',
+            'knowledge_points.*.explanation' => 'nullable|string',
+            'knowledge_points.*.examples' => 'nullable|array',
+            'knowledge_points.*.examples.*.example_en' => 'required_with:knowledge_points.*.examples|string',
+            'knowledge_points.*.examples.*.example_cn' => 'nullable|string',
+            'knowledge_points.*.examples.*.sequence' => 'required_with:knowledge_points.*.examples|integer|min:0',
+            'knowledge_points.*.audio_url' => 'nullable|url',
+            'knowledge_points.*.isNew' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -100,9 +114,59 @@ class StoryController extends Controller
                 }
             }
 
-            // 关联知识点
+            // 处理知识点（新建或关联现有）
+            $knowledgePointIds = [];
+            if (!empty($validated['knowledge_points'])) {
+                foreach ($validated['knowledge_points'] as $pointData) {
+                    // 使用 isNew 标识判断是新建知识点还是关联现有知识点
+                    $isNewPoint = isset($pointData['isNew']) && $pointData['isNew'] === true;
+
+                    if (!$isNewPoint && isset($pointData['id'])) {
+                        // 关联现有知识点，不做任何修改
+                        $existingPoint = KnowledgePoint::find($pointData['id']);
+                        if ($existingPoint) {
+                            $knowledgePointIds[] = $existingPoint->id;
+                        }
+                    } elseif ($isNewPoint) {
+                        // 创建新知识点
+                        // 检查知识点名称是否已存在
+                        $existingPoint = KnowledgePoint::where('name', $pointData['name'])->first();
+                        if ($existingPoint) {
+                            throw new \Exception("知识点 '{$pointData['name']}' 已存在，请使用其他名称");
+                        }
+
+                        $knowledgePoint = KnowledgePoint::create([
+                            'name' => $pointData['name'],
+                            'type' => $pointData['type'],
+                            'definition_en' => $pointData['definition_en'] ?? null,
+                            'definition_cn' => $pointData['definition_cn'] ?? null,
+                            'explanation' => $pointData['explanation'] ?? null,
+                        ]);
+
+                        // 创建例句
+                        if (!empty($pointData['examples'])) {
+                            foreach ($pointData['examples'] as $example) {
+                                $knowledgePoint->examples()->create([
+                                    'example_en' => $example['example_en'],
+                                    'example_cn' => $example['example_cn'] ?? null,
+                                    'sequence' => $example['sequence'],
+                                ]);
+                            }
+                        }
+
+                        $knowledgePointIds[] = $knowledgePoint->id;
+                    }
+                }
+            }
+
+            // 关联现有知识点
             if (!empty($validated['knowledge_point_ids'])) {
-                $story->knowledgePoints()->attach($validated['knowledge_point_ids']);
+                $knowledgePointIds = array_merge($knowledgePointIds, $validated['knowledge_point_ids']);
+            }
+
+            // 关联所有知识点
+            if (!empty($knowledgePointIds)) {
+                $story->knowledgePoints()->attach($knowledgePointIds);
             }
 
             DB::commit();
@@ -110,7 +174,7 @@ class StoryController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => '故事创建成功',
-                'data' => $story->load(['chapters', 'knowledgePoints']),
+                'data' => $story->load(['chapters', 'knowledgePoints.examples']),
             ], 201);
 
         } catch (\Exception $e) {
@@ -127,7 +191,7 @@ class StoryController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $story = Story::with(['chapters', 'knowledgePoints.tags'])->find($id);
+        $story = Story::with(['chapters', 'knowledgePoints.tags', 'knowledgePoints.examples'])->find($id);
 
         if (!$story) {
             return response()->json([
@@ -171,6 +235,19 @@ class StoryController extends Controller
             'chapters.*.content' => 'required_with:chapters|string',
             'knowledge_point_ids' => 'nullable|array',
             'knowledge_point_ids.*' => 'exists:knowledge_points,id',
+            'knowledge_points' => 'nullable|array',
+            'knowledge_points.*.id' => 'nullable|integer',
+            'knowledge_points.*.name' => 'required_with:knowledge_points|string|max:255',
+            'knowledge_points.*.type' => 'required_with:knowledge_points|in:vocabulary,grammar,phrase,sentence_pattern',
+            'knowledge_points.*.definition_en' => 'nullable|string',
+            'knowledge_points.*.definition_cn' => 'nullable|string',
+            'knowledge_points.*.explanation' => 'nullable|string',
+            'knowledge_points.*.examples' => 'nullable|array',
+            'knowledge_points.*.examples.*.example_en' => 'required_with:knowledge_points.*.examples|string',
+            'knowledge_points.*.examples.*.example_cn' => 'nullable|string',
+            'knowledge_points.*.examples.*.sequence' => 'required_with:knowledge_points.*.examples|integer|min:0',
+            'knowledge_points.*.audio_url' => 'nullable|url',
+            'knowledge_points.*.isNew' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
@@ -207,17 +284,65 @@ class StoryController extends Controller
                 $story->chapters()->delete();
             }
 
-            // 更新知识点关联
-            if (isset($validated['knowledge_point_ids'])) {
-                $story->knowledgePoints()->sync($validated['knowledge_point_ids']);
+            // 处理知识点（新建或关联现有）
+            $knowledgePointIds = [];
+            if (!empty($validated['knowledge_points'])) {
+                foreach ($validated['knowledge_points'] as $pointData) {
+                    // 使用 isNew 标识判断是新建知识点还是关联现有知识点
+                    $isNewPoint = isset($pointData['isNew']) && $pointData['isNew'] === true;
+
+                    if (!$isNewPoint && isset($pointData['id'])) {
+                        // 关联现有知识点，不做任何修改
+                        $existingPoint = KnowledgePoint::find($pointData['id']);
+                        if ($existingPoint) {
+                            $knowledgePointIds[] = $existingPoint->id;
+                        }
+                    } elseif ($isNewPoint) {
+                        // 创建新知识点
+                        // 检查知识点名称是否已存在
+                        $existingPoint = KnowledgePoint::where('name', $pointData['name'])->first();
+                        if ($existingPoint) {
+                            throw new \Exception("知识点 '{$pointData['name']}' 已存在，请使用其他名称");
+                        }
+
+                        $knowledgePoint = KnowledgePoint::create([
+                            'name' => $pointData['name'],
+                            'type' => $pointData['type'],
+                            'definition_en' => $pointData['definition_en'] ?? null,
+                            'definition_cn' => $pointData['definition_cn'] ?? null,
+                            'explanation' => $pointData['explanation'] ?? null,
+                        ]);
+
+                        // 创建例句
+                        if (!empty($pointData['examples'])) {
+                            foreach ($pointData['examples'] as $example) {
+                                $knowledgePoint->examples()->create([
+                                    'example_en' => $example['example_en'],
+                                    'example_cn' => $example['example_cn'] ?? null,
+                                    'sequence' => $example['sequence'],
+                                ]);
+                            }
+                        }
+
+                        $knowledgePointIds[] = $knowledgePoint->id;
+                    }
+                }
             }
+
+            // 关联现有知识点
+            if (!empty($validated['knowledge_point_ids'])) {
+                $knowledgePointIds = array_merge($knowledgePointIds, $validated['knowledge_point_ids']);
+            }
+
+            // 更新知识点关联
+            $story->knowledgePoints()->sync($knowledgePointIds);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => '故事更新成功',
-                'data' => $story->load(['chapters', 'knowledgePoints']),
+                'data' => $story->load(['chapters', 'knowledgePoints.examples']),
             ]);
 
         } catch (\Exception $e) {
@@ -274,6 +399,70 @@ class StoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => $levels,
+        ]);
+    }
+
+    /**
+     * Get stories tree for selection (used in unit editor)
+     */
+    public function getStoriesTree(): JsonResponse
+    {
+        $stories = Story::with(['chapters' => function ($query) {
+            $query->orderBy('chapter_number');
+        }])
+        ->orderBy('title')
+        ->get();
+
+        $tree = $stories->map(function ($story) {
+            $storyNode = [
+                'id' => $story->id,
+                'title' => $story->title,
+                'description' => $story->description,
+                'author' => $story->author,
+                'has_chapters' => $story->has_chapters,
+                'type' => 'story',
+                'children' => [],
+            ];
+
+            if ($story->has_chapters && $story->chapters->count() > 0) {
+                $storyNode['children'] = $story->chapters->map(function ($chapter) use ($story) {
+                    return [
+                        'id' => $chapter->id,
+                        'story_id' => $story->id,
+                        'title' => "第{$chapter->chapter_number}章: {$chapter->chapter_title}",
+                        'chapter_number' => $chapter->chapter_number,
+                        'chapter_title' => $chapter->chapter_title,
+                        'type' => 'chapter',
+                    ];
+                })->toArray();
+            }
+
+            return $storyNode;
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $tree,
+        ]);
+    }
+
+    /**
+     * Get chapters for a specific story
+     */
+    public function getChapters(string $id): JsonResponse
+    {
+        $story = Story::with('chapters')->find($id);
+
+        if (!$story) {
+            return response()->json([
+                'success' => false,
+                'message' => '故事不存在',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $story->chapters->sortBy('chapter_number')->values(),
         ]);
     }
 }

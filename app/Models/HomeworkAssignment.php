@@ -72,7 +72,7 @@ class HomeworkAssignment extends Model
     }
 
     /**
-     * 关联知识点
+     * 关联知识点（单元知识点）
      */
     public function knowledgePoints(): BelongsToMany
     {
@@ -82,6 +82,49 @@ class HomeworkAssignment extends Model
             'homework_assignment_id',
             'knowledge_point_id'
         );
+    }
+
+    /**
+     * 关联故事知识点
+     */
+    public function storyKnowledgePoints(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            KnowledgePoint::class,
+            'homework_story_knowledge_points',
+            'homework_assignment_id',
+            'knowledge_point_id'
+        );
+    }
+
+    /**
+     * 获取所有关联的知识点（包括单元知识点和故事知识点）
+     */
+    public function getAllKnowledgePointsAttribute()
+    {
+        $unitKnowledgePoints = $this->knowledgePoints->map(function ($point) {
+            return [
+                'id' => $point->id,
+                'type' => $point->type,
+                'name' => $point->content,
+                'content' => $point->content,
+                'explanation' => $point->explanation,
+                'source' => 'unit',
+            ];
+        });
+
+        $storyKnowledgePoints = $this->storyKnowledgePoints->map(function ($point) {
+            return [
+                'id' => $point->id,
+                'type' => $point->type,
+                'name' => $point->name,
+                'content' => $point->name,
+                'explanation' => $point->explanation,
+                'source' => 'story',
+            ];
+        });
+
+        return $unitKnowledgePoints->concat($storyKnowledgePoints);
     }
 
     /**

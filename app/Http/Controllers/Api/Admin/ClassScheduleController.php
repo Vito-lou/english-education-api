@@ -62,7 +62,7 @@ class ClassScheduleController extends Controller
                     'course_id' => $schedule->course_id,
                     'teacher_id' => $schedule->teacher_id,
                     'time_slot_id' => $schedule->time_slot_id,
-                    'schedule_date' => $schedule->schedule_date->format('Y-m-d'),
+                    'schedule_date' => $schedule->schedule_date instanceof \Carbon\Carbon ? $schedule->schedule_date->format('Y-m-d') : $schedule->schedule_date,
                     'lesson_content' => $schedule->lesson_content,
                     'classroom' => $schedule->classroom,
                     'status' => $schedule->status,
@@ -347,9 +347,9 @@ class ClassScheduleController extends Controller
             'id' => $schedule->id,
             'class_id' => $schedule->class_id,
             'class_name' => $schedule->class->name,
-            'lesson_date' => $schedule->schedule_date->format('Y-m-d'),
-            'start_time' => $schedule->timeSlot->start_time->format('H:i'),
-            'end_time' => $schedule->timeSlot->end_time->format('H:i'),
+            'lesson_date' => $schedule->schedule_date instanceof \Carbon\Carbon ? $schedule->schedule_date->format('Y-m-d') : $schedule->schedule_date,
+            'start_time' => substr($schedule->timeSlot->start_time, 0, 5),
+            'end_time' => substr($schedule->timeSlot->end_time, 0, 5),
             'duration' => $schedule->timeSlot->duration,
             'teacher_name' => $schedule->teacher->name,
             'subject' => $schedule->course->name,
@@ -420,7 +420,13 @@ class ClassScheduleController extends Controller
                 if (!$timeSlot) {
                     throw new \Exception("排课ID {$schedule->id} 没有关联的时间段");
                 }
-                $lessonTime = $schedule->schedule_date->format('Y-m-d') . ' ' . $timeSlot->start_time;
+
+                // 确保 schedule_date 是 Carbon 对象
+                $scheduleDate = $schedule->schedule_date;
+                if (is_string($scheduleDate)) {
+                    $scheduleDate = \Carbon\Carbon::parse($scheduleDate);
+                }
+                $lessonTime = $scheduleDate->format('Y-m-d') . ' ' . $timeSlot->start_time;
 
                 AttendanceRecord::updateOrCreate(
                     [
@@ -543,7 +549,7 @@ class ClassScheduleController extends Controller
                 return [
                     'id' => $record->id,
                     'record_type' => 'scheduled',
-                    'schedule_date' => $record->schedule->schedule_date->format('Y-m-d'),
+                    'schedule_date' => $record->schedule->schedule_date instanceof \Carbon\Carbon ? $record->schedule->schedule_date->format('Y-m-d') : $record->schedule->schedule_date,
                     'time_range' => $record->schedule->timeSlot->time_range,
                     'course_name' => $record->schedule->course->name,
                     'teacher_name' => $record->schedule->teacher->name,

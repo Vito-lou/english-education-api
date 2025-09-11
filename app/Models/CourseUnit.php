@@ -17,7 +17,8 @@ class CourseUnit extends Model
         'name',
         'description',
         'learning_objectives',
-        'story_content',
+        'story_id',
+        'story_chapter_id',
         'sort_order',
         'status',
     ];
@@ -50,11 +51,34 @@ class CourseUnit extends Model
         return $this->hasMany(Lesson::class, 'unit_id')->orderBy('sort_order');
     }
 
+
+
     /**
-     * 知识点列表
+     * 关联的故事
      */
-    public function knowledgePoints(): HasMany
+    public function story(): BelongsTo
     {
-        return $this->hasMany(UnitKnowledgePoint::class, 'unit_id')->orderBy('sort_order');
+        return $this->belongsTo(Story::class, 'story_id');
     }
+
+    /**
+     * 关联的故事章节
+     */
+    public function storyChapter(): BelongsTo
+    {
+        return $this->belongsTo(StoryChapter::class, 'story_chapter_id');
+    }
+
+    /**
+     * 获取关联故事的知识点
+     */
+    public function getStoryKnowledgePointsAttribute()
+    {
+        if ($this->story) {
+            return $this->story->knowledgePoints;
+        }
+        return collect();
+    }
+
+
 }
