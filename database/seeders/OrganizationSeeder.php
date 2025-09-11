@@ -13,13 +13,13 @@ class OrganizationSeeder extends Seeder
     {
         // 创建机构
         $institution = Institution::create([
-            'name' => '英语教育培训中心',
+            'name' => '星云英语',
             'code' => 'EETC001',
             'description' => '专业的英语教育培训机构，致力于提供高质量的英语教学服务',
             'contact_person' => '张校长',
             'contact_phone' => '13800138000',
             'contact_email' => 'admin@eetc.com',
-            'address' => '北京市朝阳区教育大厦1-3层',
+            'address' => '江苏省宿迁市泗洪县教育大厦1-3层',
             'business_license' => 'BL123456789',
             'business_hours' => [
                 'monday' => ['09:00', '21:00'],
@@ -39,16 +39,16 @@ class OrganizationSeeder extends Seeder
             'established_at' => '2020-01-01',
         ]);
 
-        // 创建朝阳校区
+        // 创建泗洪校区
         $chaoyangCampus = Department::create([
             'institution_id' => $institution->id,
-            'name' => '朝阳校区',
-            'code' => 'CAMPUS_CY',
+            'name' => '泗洪校区',
+            'code' => 'CAMPUS_SH',
             'type' => 'campus',
-            'description' => '主校区，位于朝阳区教育大厦',
+            'description' => '主校区，位于泗洪县教育大厦',
             'manager_name' => '李主任',
             'manager_phone' => '13800138001',
-            'address' => '北京市朝阳区教育大厦1-3层',
+            'address' => '江苏省宿迁市泗洪县教育大厦1-3层',
             'sort_order' => 1,
             'status' => 'active',
         ]);
@@ -83,28 +83,28 @@ class OrganizationSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        // 创建海淀校区
+        // 创建江宁校区
         $haidianCampus = Department::create([
             'institution_id' => $institution->id,
-            'name' => '海淀校区',
-            'code' => 'CAMPUS_HD',
+            'name' => '江宁校区',
+            'code' => 'CAMPUS_JN',
             'type' => 'campus',
-            'description' => '分校区，位于海淀区',
+            'description' => '分校区，位于江宁区',
             'manager_name' => '陈主任',
             'manager_phone' => '13800138004',
-            'address' => '北京市海淀区学院路',
+            'address' => '江苏省南京市江宁区学院路',
             'sort_order' => 2,
             'status' => 'active',
         ]);
 
-        // 创建海淀教学部
+        // 创建江宁教学部
         Department::create([
             'institution_id' => $institution->id,
             'parent_id' => $haidianCampus->id,
             'name' => '教学部',
-            'code' => 'DEPT_TEACH_HD',
+            'code' => 'DEPT_TEACH_JN',
             'type' => 'department',
-            'description' => '海淀校区教学部',
+            'description' => '江宁校区教学部',
             'manager_name' => '刘老师',
             'manager_phone' => '13800138005',
             'sort_order' => 1,

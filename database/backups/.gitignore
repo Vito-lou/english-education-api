@@ -1,0 +1,8 @@
+# 忽略所有备份文件，除了最新的
+backup_*.sql
+
+# 但保留最新备份文件
+!latest.sql
+
+# 保留README文件
+!README.md

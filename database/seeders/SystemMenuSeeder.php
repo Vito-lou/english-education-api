@@ -140,16 +140,6 @@ class SystemMenuSeeder extends Seeder
                     'status' => 'active',
                     'description' => '班级信息管理',
                 ],
-                [
-                    'name' => '课表管理',
-                    'code' => 'schedule_management',
-                    'path' => '/academic/schedules',
-                    'icon' => 'Calendar',
-                    'parent_id' => $academicMenu->id,
-                    'sort_order' => 4,
-                    'status' => 'active',
-                    'description' => '课程时间安排',
-                ],
             ];
 
             foreach ($academicSubMenus as $subMenuData) {

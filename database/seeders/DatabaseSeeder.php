@@ -25,16 +25,31 @@ class DatabaseSeeder extends Seeder
         // 创建家校互动菜单
         $this->call(ParentInteractionMenuSeeder::class);
 
+        // 创建素材中心菜单
+        $this->call(MaterialCenterMenuSeeder::class);
+
         // 分配菜单权限
         $this->call(MenuBasedPermissionSeeder::class);
 
         // 创建原典法英语课程数据
         $this->call(YuandianEnglishSeeder::class);
 
+        // 创建班级数据
+        $this->call(ClassSeeder::class);
+
         // 创建测试学员数据
         $this->call(TestStudentSeeder::class);
 
+        // 创建新学员数据
+        $this->call(NewStudentSeeder::class);
+
+        // 创建学生班级关系
+        $this->call(StudentClassSeeder::class);
+
         // 创建时间段配置数据
         $this->call(TimeSlotSeeder::class);
+
+        // 创建A1班级排课数据
+        $this->call(A1ClassScheduleSeeder::class);
     }
 }

@@ -66,6 +66,14 @@ class BasicDataSeeder extends Seeder
                 'is_system' => false,
                 'status' => 'active',
             ],
+            [
+                'name' => '家长',
+                'code' => 'parent',
+                'description' => '学生家长，可查看孩子学习情况',
+                'institution_id' => $institution->id,
+                'is_system' => false,
+                'status' => 'active',
+            ],
         ];
 
         foreach ($roles as $roleData) {

@@ -98,28 +98,7 @@ class TestStudentSeeder extends Seeder
             $createdStudents[] = $student;
         }
 
-        // 如果有班级，将一些学员分配到班级中
-        $classes = ClassModel::where('institution_id', $institutionId)->get();
-        if ($classes->count() > 0) {
-            $class = $classes->first();
-            
-            // 将前3个学员分配到第一个班级
-            foreach (array_slice($createdStudents, 0, 3) as $index => $student) {
-                if ($student->student_type === 'enrolled') {
-                    StudentClass::create([
-                        'student_id' => $student->id,
-                        'class_id' => $class->id,
-                        'enrollment_date' => now()->subDays(30 - $index * 10)->format('Y-m-d'),
-                        'status' => 'active',
-                    ]);
-                }
-            }
-        }
-
         $this->command->info('测试学员数据创建完成！');
         $this->command->info('创建了 ' . count($students) . ' 个测试学员');
-        if ($classes->count() > 0) {
-            $this->command->info('部分学员已分配到班级');
-        }
     }
 }

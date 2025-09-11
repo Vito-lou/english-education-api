@@ -49,43 +49,31 @@ class ClassSeeder extends Seeder
             return;
         }
 
-        // 创建示例班级
+        // 创建真实班级数据
         $classesData = [
             [
-                'name' => 'Pre-A级周末班',
+                'name' => 'Pre-A1',
                 'course' => '原典法英语',
                 'level' => 'Pre-A',
-                'max_students' => 15,
+                'campus' => '泗洪校区',
+                'teacher' => 'vito',
+                'max_students' => 6,
                 'total_lessons' => 48,
                 'status' => 'active',
+                'start_date' => '2025-03-21',
                 'remarks' => '适合4-6岁初学者，周末上课',
             ],
             [
-                'name' => 'A级平日班',
+                'name' => 'A1',
                 'course' => '原典法英语',
                 'level' => 'A',
-                'max_students' => 12,
+                'campus' => '泗洪校区',
+                'teacher' => 'vito',
+                'max_students' => 6,
                 'total_lessons' => 60,
                 'status' => 'active',
+                'start_date' => '2025-03-15',
                 'remarks' => '适合有一定基础的学员，平日晚上上课',
-            ],
-            [
-                'name' => 'B级强化班',
-                'course' => '原典法英语',
-                'level' => 'B',
-                'max_students' => 10,
-                'total_lessons' => 72,
-                'status' => 'active',
-                'remarks' => '强化训练班，提升口语和听力',
-            ],
-            [
-                'name' => 'C级精品班',
-                'course' => '原典法英语',
-                'level' => 'C',
-                'max_students' => 8,
-                'total_lessons' => 80,
-                'status' => 'graduated',
-                'remarks' => '小班教学，已结业班级',
             ],
         ];
 
@@ -104,9 +92,19 @@ class ClassSeeder extends Seeder
                     ->first();
             }
 
-            // 随机选择校区和教师
-            $campus = $campuses->random();
-            $teacher = $teachers->random();
+            // 查找指定的校区
+            $campus = $campuses->where('name', $classData['campus'])->first();
+            if (!$campus) {
+                $this->command->warn("找不到校区: {$classData['campus']}");
+                continue;
+            }
+
+            // 查找指定的教师
+            $teacher = $teachers->where('name', $classData['teacher'])->first();
+            if (!$teacher) {
+                $this->command->warn("找不到教师: {$classData['teacher']}");
+                continue;
+            }
 
             // 创建班级
             $class = ClassModel::create([
@@ -118,8 +116,8 @@ class ClassSeeder extends Seeder
                 'teacher_id' => $teacher->id,
                 'total_lessons' => $classData['total_lessons'],
                 'status' => $classData['status'],
-                'start_date' => now()->subDays(rand(30, 180))->toDateString(),
-                'end_date' => $classData['status'] === 'graduated' ? now()->subDays(rand(1, 30))->toDateString() : null,
+                'start_date' => $classData['start_date'],
+                'end_date' => null,
                 'remarks' => $classData['remarks'],
                 'institution_id' => $institution->id,
             ]);
